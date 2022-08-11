@@ -1,9 +1,9 @@
 CC 		:= cc
 CFLAGS 	:= -Wall -Wall -pedantic -std=c11
-DLIBS 	:= -lglfw -lGLEW -lGL -lm
+DLIBS 	:= $(shell pkg-config --libs glfw3 opengl glew)
 OBJDIR 	= objs
 SRCDIR  = src
-OBJS 	= $(addprefix objs/,main.o linear.o)
+OBJS 	= $(addprefix objs/,main.o)
 BIN 	= mverse
 
 all: build
