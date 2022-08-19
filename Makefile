@@ -3,7 +3,7 @@ CFLAGS 	:= -Wall -Wall -pedantic -std=c11
 DLIBS 	:= $(shell pkg-config --libs glfw3 opengl glew)
 OBJDIR 	= objs
 SRCDIR  = src
-OBJS 	= $(addprefix objs/,main.o)
+OBJS 	= $(addprefix objs/,main.o shader.o)
 BIN 	= mverse
 
 all: build
