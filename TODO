@@ -1,4 +1,19 @@
+General
+- Add textures
+    ? Try to implement it without external libraries
+    - Make a PNG image reader
+
+- Add 3D objects
+    - define a format for 3D objects
+    - Render a set of vertices loaded from a file
+
 Learning
 * Make a Hello Window
 * Make a Hello Triangle
 * Make a Shader Loader Library
+
+Linear
+- Implement the Inverse function of mat4
+- Implement the determinant function of mat4
+
+Shader

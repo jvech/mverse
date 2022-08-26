@@ -2,25 +2,32 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
+#include <signal.h>
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
-#include "shader.h"
 #include "main.h"
+#include "linear.h"
+#include "shader.h"
 
 float vertices[] = {
-    -0.5f, -0.5f, 0.0f,
-    0.5f, -0.5f, 0.0f,
-    0.0f, 0.5f, 0.0f
+    -0.5f, -0.5f, 0.0f, 1.0f, 1.0f, 0.0f,
+    0.5f, -0.5f, 0.0f, 1.0f, 1.0f, 0.0f,
+    -0.5f, 0.5f, 0.0f, 1.0, 1.0f, 0.0f,
+    0.5f, 0.5f, 0.0f, 1.0, 1.0f, 0.0f,
 };
 
-//static void sysError(const char *msg);
+unsigned int indices[] = {
+    0, 1, 2,
+    2, 3, 1
+};
+
 static void userError(const char *msg, const char *detail);
 static void glfw_size_callback(GLFWwindow *window, int width, int height);
-static void processInput(GLFWwindow *window, struct Background *c);
+static void processInput(GLFWwindow *window);
 
-void 
+void
 userError(const char *msg, const char *detail)
 {
     fprintf(stderr, "%s: %s\n", msg, detail);
@@ -33,19 +40,19 @@ glfw_size_callback(GLFWwindow *window, int width, int height)
     glViewport(0, 0, width, height);
 }
 
-static void 
-processInput(GLFWwindow *window, struct Background *c)
+void
+processInput(GLFWwindow *window)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS
-        || glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
+        || glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, 1);
-    } else if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS
-               && glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS
-               && c->R >= 0.0) {
-        c->R -= 0.1;
-    } else if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS && c->R <= 1.0) {
-        c->R += 0.1;
-    } 
+
+    if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS)
+        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS)
+        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    if (glfwGetKey(window, GLFW_KEY_3) == GLFW_PRESS)
+        glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
 }
 
 int main()
@@ -74,19 +81,23 @@ int main()
         userError("glewInit() failed", (const char *)glewGetErrorString(glewErrno));
     }
 
-    struct Background colors = {.R = 0.0, .G = 0.0, .B = 0.0, .A = 0.0};
-
-    unsigned int VBO, VAO;
+    unsigned int VBO, VAO, EBO;
     glGenVertexArrays(1, &VAO);
-    glBindVertexArray(VAO);
-
     glGenBuffers(1, &VBO);
+    glGenBuffers(1, &EBO);
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void *)0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+    glBindVertexArray(VAO);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)0);
     glEnableVertexAttribArray(0);
+
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
@@ -94,22 +105,27 @@ int main()
     unsigned int shaderProgram = shaderCreateProgram("shaders/vertex.vsh", 
                                                      "shaders/fragment.vsh");
 
-    while (!glfwWindowShouldClose(window)) {
-        processInput(window, &colors);
+    unsigned int transformLoc;
+    mat4 transform;
 
-        glClearColor(colors.R, colors.G, colors.B, colors.A);
+    while (!glfwWindowShouldClose(window)) {
+        processInput(window);
+
+        glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
         glUseProgram(shaderProgram);
         glBindVertexArray(VAO);
-        glDrawArrays(GL_TRIANGLES, 0, 3);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+
+        transformLoc = glGetUniformLocation(shaderProgram, "trans");
+        transform = linearRotate(45.0, linearVec3(0, 0, 1));
+        glUniformMatrix4fv(transformLoc, 1, GL_FALSE, transform.matrix[0]);
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
-    int nattributes;
-    glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &nattributes);
-    printf("%d\n", nattributes);
     glfwTerminate();
     return 0;
 }

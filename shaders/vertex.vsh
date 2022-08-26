@@ -1,11 +1,13 @@
 # version 330 core
 
 layout (location = 0) in vec3 aPos;
+layout (location = 1) in vec3 aColor;
+uniform mat4 trans;
 
-out vec4 vertexColor;
+out vec3 vertexColor;
 
 void main()
 {
-    gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0f);
-    vertexColor = vec4(0.2, 0.7, 0.2, 0.8);
+    gl_Position = trans * vec4(aPos, 1.0f);
+    vertexColor = aColor;
 }

@@ -1,12 +1,12 @@
 CC 		:= cc
 CFLAGS 	:= -Wall -Wall -pedantic -std=c11
-DLIBS 	:= $(shell pkg-config --libs glfw3 opengl glew)
+DLIBS 	:= -lm $(shell pkg-config --libs glfw3 opengl glew)
 OBJDIR 	= objs
 SRCDIR  = src
-OBJS 	= $(addprefix objs/,main.o shader.o)
+OBJS 	= $(addprefix objs/,main.o shader.o linear.o)
 BIN 	= mverse
 
-all: build
+all: build run
 
 $(OBJS): | $(OBJDIR)
 
@@ -18,6 +18,9 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.c
 
 build: $(OBJS)
 	${CC} $^ -o ${BIN} ${DLIBS}
+
+run:
+	./${BIN}
 
 clean:
 	@rm $(OBJS) -v
