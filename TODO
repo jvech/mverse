@@ -7,13 +7,10 @@ General
     - define a format for 3D objects
     - Render a set of vertices loaded from a file
 
-Learning
-* Make a Hello Window
-* Make a Hello Triangle
-* Make a Shader Loader Library
+- Implement Camera movement
 
 Linear
 - Implement the Inverse function of mat4
 - Implement the determinant function of mat4
-
-Shader
+* Check 3D perspective transformation
+- Implement Orhographic view transformation

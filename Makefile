@@ -1,5 +1,5 @@
 CC 		:= cc
-CFLAGS 	:= -Wall -Wall -pedantic -std=c11
+CFLAGS 	:= -Wall -pedantic -pedantic-errors -std=c11
 DLIBS 	:= -lm $(shell pkg-config --libs glfw3 opengl glew)
 OBJDIR 	= objs
 SRCDIR  = src

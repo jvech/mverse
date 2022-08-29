@@ -1,10 +1,13 @@
 #include "linear.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdarg.h>
 #include <math.h>
 
 mat4
 linearLookAt(vec3 position, vec3 target, vec3 world_up)
 {
-    mat4 out = linearMat4Identity();
+    mat4 out = linearMat4Identity(1.0);
     mat4 translate;
     vec3 cam_dir, cam_right, cam_up;
     /* position - target */
@@ -33,8 +36,8 @@ linearPerspective(float FoV, float ratio, float near, float far)
 {
     mat4 out = linearMat4Fill(0.0);
     float FoV_radians = FoV * M_PI / 180;
-    float width = near * tanf(FoV_radians) * ratio;
-    float height = near * tanf(FoV_radians);
+    float width = near * tanf(FoV_radians);
+    float height = near * tanf(FoV_radians) * ratio;
 
     out.matrix[0][0] = near / width;
     out.matrix[1][1] = near / height;
@@ -47,7 +50,7 @@ linearPerspective(float FoV, float ratio, float near, float far)
 mat4
 linearTranslate(float T_x, float T_y, float T_z)
 {
-    mat4 out = linearMat4Identity();
+    mat4 out = linearMat4Identity(1.0);
     out.matrix[0][3] = T_x;
     out.matrix[1][3] = T_y;
     out.matrix[2][3] = T_z;
@@ -63,7 +66,7 @@ linearTranslatev(vec3 T)
 mat4
 linearScale(float S_x, float S_y, float S_z)
 {
-    mat4 out = linearMat4Identity();
+    mat4 out = linearMat4Identity(1.0);
     out.matrix[0][0] = S_x;
     out.matrix[1][1] = S_y;
     out.matrix[2][2] = S_z;
@@ -77,9 +80,9 @@ linearScalev(vec3 S)
 }
 
 mat4
-linearRotate(float degree, vec3 R_xyz)
+linearRotatev(float degree, vec3 R_xyz)
 {
-    mat4 out = linearMat4Identity();
+    mat4 out = linearMat4Identity(1.0);
     vec3 R_xyz_normalized = linearVec3Normalize(R_xyz);
     float radians = degree * M_PI/180.0;
     float Rx = R_xyz_normalized.vector[0];
@@ -88,7 +91,7 @@ linearRotate(float degree, vec3 R_xyz)
     float rcos = cosf(radians);
     float rsin = sinf(radians);
 
-    out.matrix[0][0] = rcos + pow(Rx, 2) * ( 1 - rcos);
+    out.matrix[0][0] = rcos + pow(Rx, 2) * (1 - rcos);
     out.matrix[0][1] = Rx * Ry * (1 - rcos) - Rz * rsin;
     out.matrix[0][2] = Rx * Rz * (1 - rcos) + Ry * rsin;
 
@@ -100,6 +103,12 @@ linearRotate(float degree, vec3 R_xyz)
     out.matrix[2][1] = Ry * Rz * (1 - rcos) + Rx * rsin;
     out.matrix[2][2] = rcos + pow(Rz, 2) * ( 1 - rcos);
     return out;
+}
+
+mat4
+linearRotate(float degree, float Rx, float Ry, float Rz)
+{
+    return linearRotatev(degree, linearVec3(Rx, Ry, Rz));
 }
 
 mat4
@@ -116,13 +125,13 @@ linearMat4Fill(float value)
 }
 
 mat4
-linearMat4Identity()
+linearMat4Identity(float value)
 {
     int i, j;
     mat4 out;
     for (i = 0; i < 4; i++) {
         for (j = 0; j < 4; j++) {
-            if (i == j) out.matrix[i][j] = 1.0;
+            if (i == j) out.matrix[i][j] = value;
             else out.matrix[i][j] = 0.0;
         }
     }
@@ -154,6 +163,27 @@ linearMat4Mul(mat4 x1, mat4 x2)
                 out.matrix[i][j] += x1.matrix[i][k] * x2.matrix[k][j];
         }
     }
+    return out;
+}
+
+mat4
+linearMat4Muln(int n, ...)
+{
+    mat4 out;
+
+    if (n <= 0) {
+        fprintf(stderr, "linearMat4Muln() Error: the specified number of args must be a positive integer greater than 0\n");
+    }
+
+    va_list(ap);
+    va_start(ap, n);
+    out = va_arg(ap, mat4);
+
+    int i;
+    for (i = 1; i < n; i++) {
+        out = linearMat4Mul(out, va_arg(ap, mat4));
+    }
+    va_end(ap);
     return out;
 }
 
