@@ -7,7 +7,7 @@ General
     - define a format for 3D objects
     - Render a set of vertices loaded from a file
 
-- Implement Camera movement
+* Implement Camera movement
 
 Linear
 - Implement the Inverse function of mat4

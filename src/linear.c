@@ -4,12 +4,12 @@
 #include <stdarg.h>
 #include <math.h>
 
-mat4
-linearLookAt(vec3 position, vec3 target, vec3 world_up)
+Mat4
+linearLookAt(Vec3 position, Vec3 target, Vec3 world_up)
 {
-    mat4 out = linearMat4Identity(1.0);
-    mat4 translate;
-    vec3 cam_dir, cam_right, cam_up;
+    Mat4 out = linearMat4Identity(1.0);
+    Mat4 translate;
+    Vec3 cam_dir, cam_right, cam_up;
     /* position - target */
     cam_dir = linearVec3Add(position, linearVec3ScalarMulp(target, -1.0));
     cam_dir = linearVec3Normalize(cam_dir);
@@ -31,13 +31,13 @@ linearLookAt(vec3 position, vec3 target, vec3 world_up)
     return linearMat4Mul(out, translate);
 }
 
-mat4
+Mat4
 linearPerspective(float FoV, float ratio, float near, float far)
 {
-    mat4 out = linearMat4Fill(0.0);
+    Mat4 out = linearMat4Fill(0.0);
     float FoV_radians = FoV * M_PI / 180;
-    float width = near * tanf(FoV_radians);
-    float height = near * tanf(FoV_radians) * ratio;
+    float width = near * tanf(FoV_radians) * ratio;
+    float height = near * tanf(FoV_radians);
 
     out.matrix[0][0] = near / width;
     out.matrix[1][1] = near / height;
@@ -47,43 +47,43 @@ linearPerspective(float FoV, float ratio, float near, float far)
     return out;
 }
 
-mat4
+Mat4
 linearTranslate(float T_x, float T_y, float T_z)
 {
-    mat4 out = linearMat4Identity(1.0);
+    Mat4 out = linearMat4Identity(1.0);
     out.matrix[0][3] = T_x;
     out.matrix[1][3] = T_y;
     out.matrix[2][3] = T_z;
     return out;
 }
 
-mat4
-linearTranslatev(vec3 T)
+Mat4
+linearTranslatev(Vec3 T)
 {
     return linearTranslate(T.vector[0], T.vector[1], T.vector[2]);
 }
 
-mat4
+Mat4
 linearScale(float S_x, float S_y, float S_z)
 {
-    mat4 out = linearMat4Identity(1.0);
+    Mat4 out = linearMat4Identity(1.0);
     out.matrix[0][0] = S_x;
     out.matrix[1][1] = S_y;
     out.matrix[2][2] = S_z;
     return out;
 }
 
-mat4
-linearScalev(vec3 S)
+Mat4
+linearScalev(Vec3 S)
 {
     return linearScale(S.vector[0], S.vector[1], S.vector[2]);
 }
 
-mat4
-linearRotatev(float degree, vec3 R_xyz)
+Mat4
+linearRotatev(float degree, Vec3 R_xyz)
 {
-    mat4 out = linearMat4Identity(1.0);
-    vec3 R_xyz_normalized = linearVec3Normalize(R_xyz);
+    Mat4 out = linearMat4Identity(1.0);
+    Vec3 R_xyz_normalized = linearVec3Normalize(R_xyz);
     float radians = degree * M_PI/180.0;
     float Rx = R_xyz_normalized.vector[0];
     float Ry = R_xyz_normalized.vector[1]; 
@@ -105,17 +105,17 @@ linearRotatev(float degree, vec3 R_xyz)
     return out;
 }
 
-mat4
+Mat4
 linearRotate(float degree, float Rx, float Ry, float Rz)
 {
     return linearRotatev(degree, linearVec3(Rx, Ry, Rz));
 }
 
-mat4
+Mat4
 linearMat4Fill(float value)
 {
     int i, j;
-    mat4 out;
+    Mat4 out;
     for (i = 0; i < 4; i++) {
         for (j = 0; j < 4; j++) {
             out.matrix[i][j] = value;
@@ -124,11 +124,11 @@ linearMat4Fill(float value)
     return out;
 }
 
-mat4
+Mat4
 linearMat4Identity(float value)
 {
     int i, j;
-    mat4 out;
+    Mat4 out;
     for (i = 0; i < 4; i++) {
         for (j = 0; j < 4; j++) {
             if (i == j) out.matrix[i][j] = value;
@@ -138,10 +138,10 @@ linearMat4Identity(float value)
     return out;
 }
 
-mat4
-linearMat4Transpose(mat4 x)
+Mat4
+linearMat4Transpose(Mat4 x)
 {
-    mat4 out;
+    Mat4 out;
     int i, j;
     for (i = 0; i < 4; i++) {
         for (j = 0; j < 4; j++) {
@@ -151,10 +151,10 @@ linearMat4Transpose(mat4 x)
     return out;
 }
 
-mat4
-linearMat4Mul(mat4 x1, mat4 x2)
+Mat4
+linearMat4Mul(Mat4 x1, Mat4 x2)
 {
-    mat4 out;
+    Mat4 out;
     int i, j, k;
     for (i = 0; i < 4; i++) {
         for (j = 0; j < 4; j++) {
@@ -166,10 +166,10 @@ linearMat4Mul(mat4 x1, mat4 x2)
     return out;
 }
 
-mat4
+Mat4
 linearMat4Muln(int n, ...)
 {
-    mat4 out;
+    Mat4 out;
 
     if (n <= 0) {
         fprintf(stderr, "linearMat4Muln() Error: the specified number of args must be a positive integer greater than 0\n");
@@ -177,21 +177,21 @@ linearMat4Muln(int n, ...)
 
     va_list(ap);
     va_start(ap, n);
-    out = va_arg(ap, mat4);
+    out = va_arg(ap, Mat4);
 
     int i;
     for (i = 1; i < n; i++) {
-        out = linearMat4Mul(out, va_arg(ap, mat4));
+        out = linearMat4Mul(out, va_arg(ap, Mat4));
     }
     va_end(ap);
     return out;
 }
 
-mat4
-linearMat4Add(mat4 x1, mat4 x2)
+Mat4
+linearMat4Add(Mat4 x1, Mat4 x2)
 {
     int i, j;
-    mat4 out;
+    Mat4 out;
     for (i = 0; i < 4; i++) {
         for (j = 0; j < 4; j++) {
             out.matrix[i][j] = x1.matrix[i][j] + x2.matrix[i][j];
@@ -201,15 +201,15 @@ linearMat4Add(mat4 x1, mat4 x2)
 }
 
 float
-linearMat4Det(mat4 x)
+linearMat4Det(Mat4 x)
 {
     return 0.0;
 }
 
-vec3
-linearVec3ScalarMulp(vec3 x, float scalar)
+Vec3
+linearVec3ScalarMulp(Vec3 x, float scalar)
 {
-    vec3 out;
+    Vec3 out;
     int i;
     for (i = 0; i < 3; i++) {
         out.vector[i] = scalar * x.vector[i];
@@ -217,20 +217,20 @@ linearVec3ScalarMulp(vec3 x, float scalar)
     return out;
 }
 
-vec3
+Vec3
 linearVec3(float x, float y, float z)
 {
-    vec3 out;
+    Vec3 out;
     out.vector[0] = x;
     out.vector[1] = y;
     out.vector[2] = z;
     return out;
 }
 
-vec3
-linearVec3Add(vec3 x, vec3 y) 
+Vec3
+linearVec3Add(Vec3 x, Vec3 y) 
 {
-    vec3 out;
+    Vec3 out;
     int i;
     for (i = 0; i < 3; i++) {
         out.vector[i] = x.vector[i] + y.vector[i];
@@ -238,10 +238,10 @@ linearVec3Add(vec3 x, vec3 y)
     return out;
 }
 
-vec3
-linearVec3Normalize(vec3 x)
+Vec3
+linearVec3Normalize(Vec3 x)
 {
-    vec3 out;
+    Vec3 out;
     float norm = sqrtf(linearVec3DotProduct(x, x));
     int i;
     if (norm == 0) return x;
@@ -251,10 +251,10 @@ linearVec3Normalize(vec3 x)
     return out;
 }
 
-vec3
-linearVec3CrossProduct(vec3 x, vec3 y)
+Vec3
+linearVec3CrossProduct(Vec3 x, Vec3 y)
 {
-    vec3 out;
+    Vec3 out;
     out.vector[0] = x.vector[1] * y.vector[2] - x.vector[2] * y.vector[1];
     out.vector[1] = - x.vector[0] * y.vector[2] + x.vector[2] * y.vector[0];
     out.vector[2] = x.vector[0] * y.vector[1] - x.vector[1] * y.vector[0];
@@ -262,7 +262,7 @@ linearVec3CrossProduct(vec3 x, vec3 y)
 }
 
 float
-linearVec3DotProduct(vec3 x, vec3 y)
+linearVec3DotProduct(Vec3 x, Vec3 y)
 {
     float out = 0;
     int i;

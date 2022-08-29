@@ -13,6 +13,12 @@
 #include "linear.h"
 #include "shader.h"
 
+struct Camera {
+    Vec3 position;
+    Vec3 front;
+    Vec3 up;
+};
+
 float vertices[] = {
     -0.5,-0.5,-0.5, 1.0, 1.0, 1.0,
      0.5,-0.5,-0.5, 1.0, 1.0, 0.0,
@@ -47,8 +53,7 @@ unsigned int indices[] = {
 static void userError(const char *msg, const char *detail);
 static void glfw_size_callback(GLFWwindow *window, int width, int height);
 static void processInput(GLFWwindow *window);
-
-static void linearPrintMat4(mat4 x);
+static Mat4 processCameraInput(GLFWwindow *window, struct Camera *cameraObj, float deltaTime);
 
 void
 userError(const char *msg, const char *detail)
@@ -78,17 +83,81 @@ processInput(GLFWwindow *window)
         glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
 }
 
-void
-linearPrintMat4(mat4 x)
+Mat4
+processCameraInput(GLFWwindow *window, struct Camera *camObj, float deltaTime)
 {
-    int i, j;
-    for (i = 0; i < 4; i++) {
-        for (j = 0; j < 4; j++) {
-            printf("%f ", x.matrix[i][j]);
-        }
-        printf("\n");
+    /*
+     * Keyboard Input
+     */
+    Vec3 tmp;
+    float speed = 2.0f * deltaTime;
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+        // pos = pos + front * speed
+        tmp = linearVec3ScalarMulp(camObj->front, speed);
+        camObj->position = linearVec3Add(camObj->position, tmp);
     }
-    printf("\n");
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+        // pos = pos + front * (-speed)
+        tmp = linearVec3ScalarMulp(camObj->front, -speed);
+        camObj->position = linearVec3Add(camObj->position, tmp);
+    }
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+        // pos = pos + unit|(up x front)| * (speed)
+        tmp = linearVec3CrossProduct(camObj->front, camObj->up);
+        tmp = linearVec3Normalize(tmp);
+        tmp = linearVec3ScalarMulp(tmp, speed);
+        camObj->position = linearVec3Add(camObj->position, tmp);
+    }
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+        // pos = pos + unit|(up x front)| * (-speed)
+        tmp = linearVec3CrossProduct(camObj->front, camObj->up);
+        tmp = linearVec3Normalize(tmp);
+        tmp = linearVec3ScalarMulp(tmp, -speed);
+        camObj->position = linearVec3Add(camObj->position, tmp);
+    }
+
+    /*
+     * Mouse Input
+     */
+
+    static int firstMouse = 1;
+    float sensibility = 0.1f;
+    static float yaw = 90.0;
+    static float pitch = 0.0;
+
+    double xpos, ypos;
+    static double lastX, lastY;
+    float xoffset, yoffset;
+    glfwGetCursorPos(window, &xpos, &ypos);
+
+    if (firstMouse) {
+        firstMouse = 0;
+        lastX = xpos;
+        lastY = ypos;
+    }
+
+    xoffset = (xpos - lastX) * sensibility;
+    yoffset = (ypos - lastY) * sensibility;
+    lastX = xpos;
+    lastY = ypos;
+
+    yaw += xoffset;
+    pitch += yoffset;
+
+    if (pitch > 89.0) pitch = 89.0f;
+    else if (pitch < -89.0) pitch = -89.0f;
+    float rpitch = M_PI / 180 * pitch;
+    float ryaw = M_PI / 180 * yaw;
+
+    tmp = linearVec3(
+            cosf(ryaw) * cosf(-rpitch),
+            sinf(-rpitch),
+            sinf(ryaw) * cosf(-rpitch));
+    camObj->front = linearVec3Normalize(tmp);
+
+    return linearLookAt(camObj->position, 
+                        linearVec3Add(camObj->front, camObj->position), 
+                        camObj->up);
 }
 
 int main()
@@ -110,6 +179,7 @@ int main()
 
     glfwSetFramebufferSizeCallback(window, glfw_size_callback);
     glfwMakeContextCurrent(window);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     GLubyte glewErrno = glewInit();
     if (glewErrno != GLEW_OK) {
@@ -143,11 +213,18 @@ int main()
     unsigned int shaderProgram = shaderCreateProgram("shaders/vertex.vsh", 
                                                      "shaders/fragment.fsh");
 
-    unsigned int modelLoc, viewLoc, projLoc;
-    mat4 model, view, proj;
-    mat4 T, S, R;
+    struct Camera mainCamera;
+    mainCamera.position = linearVec3(0.0, 0.0, -3.0);
+    mainCamera.front = linearVec3(0.0, 0.0, 0.0);
+    mainCamera.up = linearVec3(0.0, 1.0, 0.0);
 
-    float t;
+    unsigned int modelLoc, viewLoc, projLoc;
+    Mat4 model, view, proj;
+    Mat4 T, S, R;
+
+    float dt, t, t0;
+    int width, height;
+    t0 = 0;
     while (!glfwWindowShouldClose(window)) {
         processInput(window);
 
@@ -155,18 +232,19 @@ int main()
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         t = (float)glfwGetTime();
+        dt = t - t0;
+        t0 = t;
+
         T = linearTranslate(0.0, 0.0, 0.0);
         R = linearRotate(180 * t / M_PI, 0.0, 1.0, 0.0);
         S = linearScale(1.0, 1.0, 1.0);
 
         model = linearMat4Muln(3, T, R, S);
 
-        T = linearTranslate(0.0, -0.0, -80);
-        R = linearRotate(60, 1, 0, 0);
+        view = processCameraInput(window, &mainCamera, dt);
 
-        view = linearMat4Muln(2, T, R);
-
-        proj = linearPerspective(35, 4 / 3.0, 0.1, 100);
+        glfwGetWindowSize(window, &width, &height);
+        proj = linearPerspective(35, width / (float)height, 0.1, 100);
         glUseProgram(shaderProgram);
         glBindVertexArray(VAO);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
@@ -176,10 +254,9 @@ int main()
         projLoc = glGetUniformLocation(shaderProgram, "proj");
 
         glUniformMatrix4fv(modelLoc, 1, GL_TRUE, model.matrix[0]);
-        glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(int), GL_UNSIGNED_INT, 0);
         glUniformMatrix4fv(viewLoc, 1, GL_TRUE, view.matrix[0]);
-        glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(int), GL_UNSIGNED_INT, 0);
         glUniformMatrix4fv(projLoc, 1, GL_TRUE, proj.matrix[0]);
+
         glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(int), GL_UNSIGNED_INT, 0);
 
         glfwSwapBuffers(window);
