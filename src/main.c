@@ -218,7 +218,6 @@ int main()
     mainCamera.front = linearVec3(0.0, 0.0, 0.0);
     mainCamera.up = linearVec3(0.0, 1.0, 0.0);
 
-    unsigned int modelLoc, viewLoc, projLoc;
     Mat4 model, view, proj;
     Mat4 T, S, R;
 
@@ -245,20 +244,16 @@ int main()
 
         glfwGetWindowSize(window, &width, &height);
         proj = linearPerspective(35, width / (float)height, 0.1, 100);
+
         glUseProgram(shaderProgram);
         glBindVertexArray(VAO);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 
-        modelLoc = glGetUniformLocation(shaderProgram, "model");
-        viewLoc = glGetUniformLocation(shaderProgram, "view");
-        projLoc = glGetUniformLocation(shaderProgram, "proj");
-
-        glUniformMatrix4fv(modelLoc, 1, GL_TRUE, model.matrix[0]);
-        glUniformMatrix4fv(viewLoc, 1, GL_TRUE, view.matrix[0]);
-        glUniformMatrix4fv(projLoc, 1, GL_TRUE, proj.matrix[0]);
+        shaderSetUniformMatrix4fv(shaderProgram, "model", model.matrix[0]);
+        shaderSetUniformMatrix4fv(shaderProgram, "view", view.matrix[0]);
+        shaderSetUniformMatrix4fv(shaderProgram, "proj", proj.matrix[0]);
 
         glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(int), GL_UNSIGNED_INT, 0);
-
         glfwSwapBuffers(window);
         glfwPollEvents();
     }

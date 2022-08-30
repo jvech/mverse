@@ -5,6 +5,7 @@ General
 
 - Add 3D objects
     - define a format for 3D objects
+    - Implement a function to load objects from a file
     - Render a set of vertices loaded from a file
 
 * Implement Camera movement

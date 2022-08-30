@@ -99,3 +99,17 @@ shaderCreateProgram(const char *vertexShaderPath, const char *fragmentShaderPath
 
     return shaderProgram;
 }
+
+void
+shaderSetUniformMatrix4fv(unsigned int program, char *uniformVariable, float *data)
+{
+    unsigned int varLoc = glGetUniformLocation(program, uniformVariable);
+    glUniformMatrix4fv(varLoc, 1, GL_TRUE, data);
+}
+
+void
+shaderSetUniform1f(unsigned int program, char *uniformVariable, float data)
+{
+    unsigned int varLoc = glGetUniformLocation(program, uniformVariable);
+    glUniform1f(varLoc, data);
+}
