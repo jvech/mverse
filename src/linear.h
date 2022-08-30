@@ -20,6 +20,7 @@ Mat4 linearTranslate(float translate_x, float translate_y, float translate_z);
 Mat4 linearScale(float scale_x, float scale_y, float scale_z);
 Mat4 linearRotate(float degree, float rotate_x, float rotate_y, float rotate_z);
 Mat4 linearPerspective(float FoV, float ratio, float near, float far);
+Mat4 linearOrtho(float left, float right, float bottom, float top, float near, float far);
 Mat4 linearLookAt(Vec3 position, Vec3 target, Vec3 up);
 
 Mat4 linearMat4Fill(float value);

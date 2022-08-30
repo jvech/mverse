@@ -48,6 +48,26 @@ linearPerspective(float FoV, float ratio, float near, float far)
 }
 
 Mat4
+linearOrtho(float left, float right, float bottom, float top, float near, float far)
+{
+    Mat4 out = linearMat4Identity(1.0);
+
+    float width = right - left;
+    float height = top - bottom;
+    float depth = far - near;
+
+    out.matrix[0][0] = 2 / (width);
+    out.matrix[0][3] = - (right + left) / width;
+
+    out.matrix[1][1] = 2 / (height);
+    out.matrix[1][3] = - (top + bottom) / height;
+
+    out.matrix[2][2] = -2 / (depth);
+    out.matrix[2][2] = - (far + near) / depth;
+    return out;
+}
+
+Mat4
 linearTranslate(float T_x, float T_y, float T_z)
 {
     Mat4 out = linearMat4Identity(1.0);
