@@ -35,9 +35,9 @@ Mat4
 linearPerspective(float FoV, float ratio, float near, float far)
 {
     Mat4 out = linearMat4Fill(0.0);
-    float FoV_radians = FoV * M_PI / 180;
-    float width = near * tanf(FoV_radians) * ratio;
-    float height = near * tanf(FoV_radians);
+    float FoV_radians = FoV * M_PI / 180 / 2;
+    float width = 2 * near * tanf(FoV_radians) * ratio;
+    float height = 2 * near * tanf(FoV_radians);
 
     out.matrix[0][0] = near / width;
     out.matrix[1][1] = near / height;
