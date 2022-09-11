@@ -8,6 +8,7 @@
 #include <math.h>
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+#include "../include/stb_image.h"
 
 #include "main.h"
 #include "linear.h"
@@ -20,14 +21,47 @@ struct Camera {
 };
 
 float vertices[] = {
-    -0.5,-0.5,-0.5, 1.0, 1.0, 1.0,
-     0.5,-0.5,-0.5, 1.0, 1.0, 0.0,
-    -0.5, 0.5,-0.5, 1.0, 0.0, 1.0,
-     0.5, 0.5,-0.5, 1.0, 0.0, 0.0,
-    -0.5,-0.5, 0.5, 0.0, 1.0, 1.0,
-     0.5,-0.5, 0.5, 0.0, 1.0, 0.0,
+    -0.5,-0.5,-0.5, 0.0, 0.0,-1.0,
+     0.5,-0.5,-0.5, 0.0, 0.0,-1.0,
+     0.5, 0.5,-0.5, 0.0, 0.0,-0.0,
+     0.5, 0.5,-0.5, 0.0, 0.0,-0.0,
+    -0.5, 0.5,-0.5, 0.0, 0.0,-1.0,
+    -0.5,-0.5,-0.5, 0.0, 0.0,-1.0,
+
+    -0.5,-0.5, 0.5, 0.0, 0.0, 1.0,
+     0.5,-0.5, 0.5, 0.0, 0.0, 1.0,
+     0.5, 0.5, 0.5, 0.0, 0.0, 1.0,
+     0.5, 0.5, 0.5, 0.0, 0.0, 1.0,
     -0.5, 0.5, 0.5, 0.0, 0.0, 1.0,
-     0.5, 0.5, 0.5, 0.0, 0.0, 0.0,
+    -0.5,-0.5, 0.5, 0.0, 0.0, 1.0,
+
+    -0.5,-0.5,-0.5,-1.0, 0.0, 0.0,
+    -0.5, 0.5,-0.5,-1.0, 0.0, 0.0,
+    -0.5, 0.5, 0.5,-1.0, 0.0, 0.0,
+    -0.5, 0.5, 0.5,-1.0, 0.0, 0.0,
+    -0.5,-0.5, 0.5,-1.0, 0.0, 0.0,
+    -0.5,-0.5,-0.5,-1.0, 0.0, 0.0,
+
+     0.5,-0.5,-0.5, 1.0, 0.0, 0.0,
+     0.5, 0.5,-0.5, 1.0, 0.0, 0.0,
+     0.5, 0.5, 0.5, 1.0, 0.0, 0.0,
+     0.5, 0.5, 0.5, 1.0, 0.0, 0.0,
+     0.5,-0.5, 0.5, 1.0, 0.0, 0.0,
+     0.5,-0.5,-0.5, 1.0, 0.0, 0.0,
+
+    -0.5,-0.5,-0.5, 0.0,-1.0, 0.0,
+     0.5,-0.5,-0.5, 0.0,-1.0, 0.0,
+     0.5,-0.5, 0.5, 0.0,-1.0, 0.0,
+     0.5,-0.5, 0.5, 0.0,-1.0, 0.0,
+    -0.5,-0.5, 0.5, 0.0,-1.0, 0.0,
+    -0.5,-0.5,-0.5, 0.0,-1.0, 0.0,
+
+    -0.5, 0.5,-0.5, 0.0, 1.0, 0.0,
+     0.5, 0.5,-0.5, 0.0, 1.0, 0.0,
+     0.5, 0.5, 0.5, 0.0, 1.0, 0.0,
+     0.5, 0.5, 0.5, 0.0, 1.0, 0.0,
+    -0.5, 0.5, 0.5, 0.0, 1.0, 0.0,
+    -0.5, 0.5,-0.5, 0.0, 1.0, 0.0,
 };
 
 unsigned int indices[] = {
@@ -122,7 +156,7 @@ processCameraInput(GLFWwindow *window, struct Camera *camObj, float deltaTime)
 
     static int firstMouse = 1;
     float sensibility = 0.1f;
-    static float yaw = 90.0;
+    static float yaw = -90.0;
     static float pitch = 0.0;
 
     double xpos, ypos;
@@ -188,8 +222,12 @@ int main()
     }
 
     glEnable(GL_DEPTH_TEST);
+    unsigned int programColor = shaderCreateProgram("shaders/color.vsh",
+                                                    "shaders/color.fsh");
+    unsigned int programLight = shaderCreateProgram("shaders/lightsource.vsh",
+                                                    "shaders/lightsource.fsh");
 
-    unsigned int VBO, VAO, EBO;
+    unsigned int VBO, VAO, EBO, lightVAO;
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
     glGenBuffers(1, &EBO);
@@ -201,25 +239,30 @@ int main()
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
     glBindVertexArray(VAO);
+
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)0);
     glEnableVertexAttribArray(0);
 
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
+    glBindVertexArray(lightVAO);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)0);
+    glEnableVertexAttribArray(0);
+
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 
-    unsigned int shaderProgram = shaderCreateProgram("shaders/vertex.vsh", 
-                                                     "shaders/fragment.fsh");
 
     struct Camera mainCamera;
-    mainCamera.position = linearVec3(0.0, 0.0, -3.0);
-    mainCamera.front = linearVec3(0.0, 0.0, 0.0);
+    mainCamera.position = linearVec3(0.0, 0.0, 3.0);
+    mainCamera.front = linearVec3(0.0, 0.0, -1.0);
     mainCamera.up = linearVec3(0.0, 1.0, 0.0);
 
     Mat4 model, view, proj;
     Mat4 T, S, R;
+    Vec3 lightPos = linearVec3(0.0, 3.0, -10.0);
 
     float dt, t, t0;
     int width, height;
@@ -227,15 +270,16 @@ int main()
     while (!glfwWindowShouldClose(window)) {
         processInput(window);
 
-        glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         t = (float)glfwGetTime();
         dt = t - t0;
         t0 = t;
 
-        T = linearTranslate(0.0, 0.0, 0.0);
-        R = linearRotate(180 * t / M_PI, 0.0, 1.0, 0.0);
+        /* Color Object */
+        T = linearTranslate(0.0, 0.0, -4.0);
+        R = linearRotate(180 * t / M_PI, 0, 1, 0);
         S = linearScale(1.0, 1.0, 1.0);
 
         model = linearMat4Muln(3, T, R, S);
@@ -243,17 +287,45 @@ int main()
         view = processCameraInput(window, &mainCamera, dt);
 
         glfwGetWindowSize(window, &width, &height);
-        proj = linearPerspective(35, width / (float)height, 0.1, 100);
+        proj = linearPerspective(35, (float)width / height, 0.1, 100);
 
-        glUseProgram(shaderProgram);
+        glUseProgram(programColor);
         glBindVertexArray(VAO);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 
-        shaderSetUniformMatrix4fv(shaderProgram, "model", model.matrix[0]);
-        shaderSetUniformMatrix4fv(shaderProgram, "view", view.matrix[0]);
-        shaderSetUniformMatrix4fv(shaderProgram, "proj", proj.matrix[0]);
 
-        glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(int), GL_UNSIGNED_INT, 0);
+        shaderSetMatrixfv(programColor, "model", model.matrix[0], glUniformMatrix4fv);
+        shaderSetMatrixfv(programColor, "view", view.matrix[0], glUniformMatrix4fv);
+        shaderSetMatrixfv(programColor, "proj", proj.matrix[0], glUniformMatrix4fv);
+        shaderSetMatrixfv(programColor, "rotNormals", R.matrix[0], glUniformMatrix4fv);
+
+        shaderSetfv(programColor, "material.ambient", vec3(1.0, 0.5, 0.31), glUniform3fv);
+        shaderSetfv(programColor, "material.diffuse", vec3(1.0, 0.5, 0.31), glUniform3fv);
+        shaderSetfv(programColor, "material.specular", vec3(0.5, 0.5, 0.5), glUniform3fv);
+        shaderSet1f(programColor, "material.shininess", 32.0f);
+
+        shaderSetfv(programColor, "light.ambient", vec3(0.1, 0.1, 0.1), glUniform3fv);
+        shaderSetfv(programColor, "light.diffuse", vec3(0.5, 0.5, 0.5), glUniform3fv);
+        shaderSetfv(programColor, "light.specular", vec3(1.0, 1.0, 1.0), glUniform3fv);
+        shaderSetfv(programColor, "light.position", lightPos.vector, glUniform3fv);
+        shaderSetfv(programColor, "viewPos", mainCamera.position.vector, glUniform3fv);
+
+
+        glDrawArrays(GL_TRIANGLES, 0, sizeof(vertices) / sizeof(float));
+
+        /* Light Source */
+        model = linearMat4Mul(linearTranslatev(lightPos), linearScale(0.5, 0.5, 0.5));
+
+        glUseProgram(programLight);
+        glBindVertexArray(lightVAO);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+
+        shaderSetMatrixfv(programColor, "model", model.matrix[0], glUniformMatrix4fv);
+        shaderSetMatrixfv(programColor, "view", view.matrix[0], glUniformMatrix4fv);
+        shaderSetMatrixfv(programColor, "proj", proj.matrix[0], glUniformMatrix4fv);
+
+        glDrawArrays(GL_TRIANGLES, 0, sizeof(vertices) / sizeof(float));
+
         glfwSwapBuffers(window);
         glfwPollEvents();
     }

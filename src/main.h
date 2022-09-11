@@ -1,6 +1,1 @@
-typedef struct {
-    float pos[3];
-    float color[3];
-} vertex;
-
-enum AXIS {X_AXIS, Y_AXIS, Z_AXIS};
+#define vec3(x, y, z) linearVec3(x, y, z).vector

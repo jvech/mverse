@@ -2,6 +2,17 @@
 #define __SHADER__
 
 unsigned int shaderCreateProgram(const char *vertexShaderPath, const char *fragmentShaderPath);
-void shaderSetUniformMatrix4fv(unsigned int program, char *uniformVariable, float *data);
-void shaderSetUniform1f(unsigned int program, char *uniformVariable, float data);
+void shaderSetfv(
+        unsigned int program,
+        char *uniformVariable,
+        float *data,
+        void (*uniform_callback)(int, int, const float *));
+
+void shaderSetMatrixfv(
+        unsigned int program,
+        char *uniformVariable,
+        float *data,
+        void (*uniform_callback)(int, int, unsigned char, const float *));
+
+void shaderSet1f(unsigned int program, char *uniformVariable, float data);
 #endif

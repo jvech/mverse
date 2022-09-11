@@ -101,14 +101,30 @@ shaderCreateProgram(const char *vertexShaderPath, const char *fragmentShaderPath
 }
 
 void
-shaderSetUniformMatrix4fv(unsigned int program, char *uniformVariable, float *data)
+shaderSetfv(
+        unsigned int program,
+        char *uniformVariable,
+        float *data,
+        void (*uniform_callback)(int, int, const float *))
 {
     unsigned int varLoc = glGetUniformLocation(program, uniformVariable);
-    glUniformMatrix4fv(varLoc, 1, GL_TRUE, data);
+    uniform_callback(varLoc, 1, data);
+}
+
+
+void
+shaderSetMatrixfv(
+        unsigned int program,
+        char *uniformVariable,
+        float *data,
+        void (*uniform_callback)(int, int, unsigned char, const float *))
+{
+    unsigned int varLoc = glGetUniformLocation(program, uniformVariable);
+    uniform_callback(varLoc, 1, GL_TRUE, data);
 }
 
 void
-shaderSetUniform1f(unsigned int program, char *uniformVariable, float data)
+shaderSet1f(unsigned int program, char *uniformVariable, float data)
 {
     unsigned int varLoc = glGetUniformLocation(program, uniformVariable);
     glUniform1f(varLoc, data);
