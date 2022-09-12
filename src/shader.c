@@ -129,3 +129,10 @@ shaderSet1f(unsigned int program, char *uniformVariable, float data)
     unsigned int varLoc = glGetUniformLocation(program, uniformVariable);
     glUniform1f(varLoc, data);
 }
+
+void
+shaderSet1i(unsigned int program, char *uniformVariable, int data)
+{
+    unsigned int varLoc = glGetUniformLocation(program, uniformVariable);
+    glUniform1i(varLoc, data);
+}

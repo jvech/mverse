@@ -15,4 +15,5 @@ void shaderSetMatrixfv(
         void (*uniform_callback)(int, int, unsigned char, const float *));
 
 void shaderSet1f(unsigned int program, char *uniformVariable, float data);
+void shaderSet1i(unsigned int program, char *uniformVariable, int data);
 #endif

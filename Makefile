@@ -1,6 +1,7 @@
 CC 		:= cc
 CFLAGS 	:= -Wall -pedantic -pedantic-errors -std=c11
 DLIBS 	:= -lm $(shell pkg-config --libs glfw3 opengl glew)
+INCLUDE := $(addprefix -I,./include)
 OBJDIR 	= objs
 SRCDIR  = src
 OBJS 	= $(addprefix objs/,main.o shader.o linear.o)
@@ -14,7 +15,7 @@ $(OBJDIR):
 	mkdir ${OBJDIR}
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.c
-	${CC} -c $< -o $@ ${CFLAGS}
+	${CC} -c $< -o $@ ${CFLAGS} ${INCLUDE}
 
 build: $(OBJS)
 	${CC} $^ -o ${BIN} ${DLIBS}
