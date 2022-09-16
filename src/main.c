@@ -242,11 +242,11 @@ int main()
 
     glEnable(GL_DEPTH_TEST);
     stbi_set_flip_vertically_on_load(1);
+
     unsigned int programColor = shaderCreateProgram("shaders/color.vsh",
                                                     "shaders/color.fsh");
     unsigned int programLight = shaderCreateProgram("shaders/lightsource.vsh",
                                                     "shaders/lightsource.fsh");
-
     unsigned int VBO, VAO, lightVAO;
     int vertexSize = 8;
 
@@ -275,10 +275,31 @@ int main()
     unsigned int diffuseMap = loadTexture("textures/container2.png");
     unsigned int specularMap = loadTexture("textures/container2_specular.png");
 
-
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
 
+
+    /*============ Initializations ===============*/
+
+    Vec3 cubePositions[] = {
+                            linearVec3( 0.5f,  0.0f,  0.0f),
+                            linearVec3( 2.0f,  5.0f, -15.0f),
+                            linearVec3(-1.5f, -2.2f, -2.5f),
+                            linearVec3(-3.8f, -2.0f, -12.3f),
+                            linearVec3( 2.4f, -0.4f, -3.5f),
+                            linearVec3(-1.7f,  3.0f, -7.5f),
+                            linearVec3( 1.3f, -2.0f, -2.5f),
+                            linearVec3( 1.5f,  2.0f, -2.5f),
+                            linearVec3( 1.5f,  0.2f, -1.5f),
+                            linearVec3(-1.3f,  1.0f, -1.5f)
+                            };
+
+    Vec3 pointLightsPos[4] = {
+                            linearVec3(0.7f, 0.2f, 2.0f),
+                            linearVec3(2.3f, -3.3f, -4.0f),
+                            linearVec3(-4.0f, 2.0f, -12.0f),
+                            linearVec3(0.0f, 0.0f, -3.0f),
+                            };
 
     struct Camera mainCamera;
     mainCamera.position = linearVec3(0.0, 0.0, 3.0);
@@ -287,15 +308,18 @@ int main()
 
     Mat4 model, view, proj;
     Mat4 T, S, R;
-    Vec3 lightPos = linearVec3(0.0, 2.0, -7.0);
 
+    Vec3 dirLight = linearVec3(-0.2, -1.0, 0.3);
+    Vec3 ambient = linearVec3(0.0, 0.0, 0.0);
+    Vec3 diffuse = linearVec3(0.5, 0.5, 0.5);
+    Vec3 specular = linearVec3(1.0, 1.0, 1.0);
     float dt, t, t0;
     int width, height;
     t0 = 0;
     while (!glfwWindowShouldClose(window)) {
         processInput(window);
 
-        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         /* -------------------
@@ -305,38 +329,55 @@ int main()
         dt = t - t0;
         t0 = t;
 
-        // World Transformation
-        // --------------------
-        T = linearTranslate(-3.0, 0.0, -2.0);
-        R = linearRotate(180 * t / M_PI, 0, 1, 0);
-        S = linearScale(1.0, 1.0, 1.0);
-        model = linearMat4Muln(3, T, R, S);
 
-        // Camera and view transformations
-        // -------------------------------
         view = processCameraInput(window, &mainCamera, dt);
         glfwGetWindowSize(window, &width, &height);
         proj = linearPerspective(35, (float)width / height, 0.1, 100);
 
-        /* ----------------------------
-         *  Rendering
-         * ----------------------------
-         */
         glUseProgram(programColor);
 
-        shaderSetMatrixfv(programColor, "model", model.matrix[0], glUniformMatrix4fv);
-        shaderSetMatrixfv(programColor, "view", view.matrix[0], glUniformMatrix4fv);
-        shaderSetMatrixfv(programColor, "proj", proj.matrix[0], glUniformMatrix4fv);
-        shaderSetMatrixfv(programColor, "rotNormals", R.matrix[0], glUniformMatrix4fv);
+        float constant = 1.0;
+        float linear = 0.09;
+        float quadratic = 0.032f;
 
+        shaderSetfv(programColor, "dirLight.direction", dirLight.vector, glUniform3fv);
+        shaderSetfv(programColor, "dirLight.ambient",   ambient.vector, glUniform3fv);
+        shaderSetfv(programColor, "dirLight.diffuse",   diffuse.vector, glUniform3fv);
+        shaderSetfv(programColor, "dirLight.specular",  vec3(1.0, 1.0, 1.0), glUniform3fv);
+
+        char varNames[7][50];
+        for (int i = 0; i < 4; i++) {
+            sprintf(varNames[0], "pointLight[%d].position", i);
+            sprintf(varNames[1], "pointLight[%d].ambient", i);
+            sprintf(varNames[2], "pointLight[%d].diffuse", i);
+            sprintf(varNames[3], "pointLight[%d].specular", i);
+            sprintf(varNames[4], "pointLight[%d].constant", i);
+            sprintf(varNames[5], "pointLight[%d].linear", i);
+            sprintf(varNames[6], "pointLight[%d].quadratic", i);
+
+            shaderSetfv(programColor, varNames[0], pointLightsPos[i].vector, glUniform3fv);
+            shaderSetfv(programColor, varNames[1], ambient.vector, glUniform3fv);
+            shaderSetfv(programColor, varNames[2], diffuse.vector, glUniform3fv);
+            shaderSetfv(programColor, varNames[3], specular.vector, glUniform3fv);
+            shaderSet1f(programColor, varNames[4], constant);
+            shaderSet1f(programColor, varNames[5], linear);
+            shaderSet1f(programColor, varNames[6], quadratic);
+        }
+
+        shaderSetfv(programColor, "flashLight.position", mainCamera.position.vector, glUniform3fv);
+        shaderSetfv(programColor, "flashLight.direction", mainCamera.front.vector, glUniform3fv);
+        shaderSetfv(programColor, "flashLight.ambient", ambient.vector, glUniform3fv);
+        shaderSetfv(programColor, "flashLight.diffuse", vec3(0.8, 0.5, 0.5), glUniform3fv);
+        shaderSetfv(programColor, "flashLight.specular", vec3(1.0, 0.0, 0.0), glUniform3fv);
+        shaderSet1f(programColor, "flashLight.constant", constant);
+        shaderSet1f(programColor, "flashLight.linear", linear);
+        shaderSet1f(programColor, "flashLight.quadratic", quadratic);
+        shaderSet1f(programColor, "flashLight.cutOff", cosf(12.5f * M_PI / 180));
+        shaderSet1f(programColor, "flashLight.outerCutOff", cosf(17.5f * M_PI / 180));
+
+        shaderSetfv(programColor, "viewPos", mainCamera.position.vector, glUniform3fv);
         shaderSetfv(programColor, "material.specular", vec3(0.5, 0.5, 0.5), glUniform3fv);
         shaderSet1f(programColor, "material.shininess", 64.0f);
-
-        shaderSetfv(programColor, "light.ambient", vec3(0.2, 0.2, 0.2), glUniform3fv);
-        shaderSetfv(programColor, "light.diffuse", vec3(0.5, 0.5, 0.5), glUniform3fv);
-        shaderSetfv(programColor, "light.specular", vec3(1.0, 1.0, 1.0), glUniform3fv);
-        shaderSetfv(programColor, "light.position", lightPos.vector, glUniform3fv);
-        shaderSetfv(programColor, "viewPos", mainCamera.position.vector, glUniform3fv);
         shaderSet1i(programColor, "material.diffuse", 0);
         shaderSet1i(programColor, "material.specular", 1);
 
@@ -345,23 +386,36 @@ int main()
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, specularMap);
 
+        shaderSetMatrixfv(programColor, "view", view.matrix[0], glUniformMatrix4fv);
+        shaderSetMatrixfv(programColor, "proj", proj.matrix[0], glUniformMatrix4fv);
+        for (int i = 0; i < 10; i++) {
+            // World Transformation
+            // --------------------
+            T = linearTranslatev(cubePositions[i]);
+            R = linearRotate(180 * i / M_PI, 1.0, 0.3, 0.5);
+            S = linearScale(1.0, 1.0, 1.0);
+            model = linearMat4Muln(3, T, R, S);
+            shaderSetMatrixfv(programColor, "model", model.matrix[0], glUniformMatrix4fv);
+            shaderSetMatrixfv(programColor, "rotNormals", R.matrix[0], glUniformMatrix4fv);
 
-        glBindVertexArray(VAO);
-        glDrawArrays(GL_TRIANGLES, 0, sizeof(vertices) / sizeof(float));
+            glBindVertexArray(VAO);
+            glDrawArrays(GL_TRIANGLES, 0, sizeof(vertices) / sizeof(float));
+        }
 
         /* -----------------
          *  Light Source
          * -----------------*/
-        model = linearMat4Mul(linearTranslatev(lightPos), linearScale(0.2, 0.2, 0.2));
+        for (int i = 0; i < 4; i++) {
+            model = linearMat4Mul(linearTranslatev(pointLightsPos[i]), 
+                                  linearScale(0.2, 0.2, 0.2));
+            glUseProgram(programLight);
+            glBindVertexArray(lightVAO);
 
-        glUseProgram(programLight);
-        glBindVertexArray(lightVAO);
-
-        shaderSetMatrixfv(programColor, "model", model.matrix[0], glUniformMatrix4fv);
-        shaderSetMatrixfv(programColor, "view", view.matrix[0], glUniformMatrix4fv);
-        shaderSetMatrixfv(programColor, "proj", proj.matrix[0], glUniformMatrix4fv);
-
-        glDrawArrays(GL_TRIANGLES, 0, sizeof(vertices) / sizeof(float));
+            shaderSetMatrixfv(programColor, "model", model.matrix[0], glUniformMatrix4fv);
+            shaderSetMatrixfv(programColor, "view", view.matrix[0], glUniformMatrix4fv);
+            shaderSetMatrixfv(programColor, "proj", proj.matrix[0], glUniformMatrix4fv);
+            glDrawArrays(GL_TRIANGLES, 0, sizeof(vertices) / sizeof(float));
+        }
 
         glfwSwapBuffers(window);
         glfwPollEvents();
