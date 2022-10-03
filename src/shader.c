@@ -7,8 +7,8 @@ static char *getShaderSource(const char *shaderPath);
 static void checkShaderCompile(unsigned int shader, const char *shaderPath);
 static void checkProgramLink(unsigned int shader);
 
-char
-*getShaderSource(const char *shaderPath)
+char *
+getShaderSource(const char *shaderPath)
 {
     long fileSize;
     char *shaderSource;

@@ -3,12 +3,13 @@ General
     ? Try to implement it without external libraries
     - Make a PNG image reader
 
-- Add 3D objects
-    - define a format for 3D objects
-    - Implement a function to load objects from a file
-    - Render a set of vertices loaded from a file
+Obj
+- Load obj files
+    * Vertex coordinates, normals and textures
+    - read faces with more than 4 vertices
+- Render a set of vertices loaded from a file
+    - Add normal Support
 
-* Implement Camera movement
 
 Linear
 - Implement the Inverse function of mat4

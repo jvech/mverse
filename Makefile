@@ -4,10 +4,10 @@ DLIBS 	:= -lm $(shell pkg-config --libs glfw3 opengl glew)
 INCLUDE := $(addprefix -I,./include)
 OBJDIR 	= objs
 SRCDIR  = src
-OBJS 	= $(addprefix objs/,main.o shader.o linear.o)
+OBJS 	= $(addprefix objs/,main.o shader.o linear.o obj.o)
 BIN 	= mverse
 
-all: build run
+all: build
 
 $(OBJS): | $(OBJDIR)
 
@@ -15,7 +15,7 @@ $(OBJDIR):
 	mkdir ${OBJDIR}
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.c
-	${CC} -c $< -o $@ ${CFLAGS} ${INCLUDE}
+	${CC} -g -c $< -o $@ ${CFLAGS} ${INCLUDE}
 
 build: $(OBJS)
 	${CC} $^ -o ${BIN} ${DLIBS}
