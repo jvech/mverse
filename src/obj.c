@@ -28,10 +28,11 @@ struct Seti {
 static void readV3(char *line, struct Setv3 **v, int vIndex);
 static void readV2(char *line, struct Setv2 **vn, int vtIndex);
 static void readF(char *line, Mesh *mesh, struct Setv3 *v, struct Setv2 *vt, struct Setv3 *vn);
-static void vertexCount(FILE *, int *vSize, int *vtSize, int *vnSize);
 
 // ----------------------------------------------------------------------------
 static int readIndices(char *line, struct Seti *f);
+static int __readIndices(char *line, struct Seti *f);
+static struct Seti * __callocIndices(char *line);
 static Vertex createVertex(struct Seti f, struct Setv3 *v, struct Setv2 *vt, struct Setv3 *vn);
 static int vertexInVertices(Vertex vertex, Vertex *vertices, int nVertices);
 static void vertexAdd(Mesh *mesh, Vertex vertex);
@@ -60,7 +61,6 @@ objCreateMesh(const char *filename)
         return NULL;
     }
 
-    //vertexCount(fi, &vSize, &vtSize, &vnSize);
     v   = (struct Setv3 *)calloc(1, vSize  * sizeof(struct Setv3));
     vt  = (struct Setv2 *)calloc(1, vtSize * sizeof(struct Setv2));
     vn  = (struct Setv3 *)calloc(1, vnSize * sizeof(struct Setv3));
@@ -82,19 +82,6 @@ objCreateMesh(const char *filename)
         else if (!strncmp("vt", lineBuffer, 2))  readV2(lineBuffer + 2, &vt, vtIndex++);
         else if (!strncmp("vn", lineBuffer, 2))  readV3(lineBuffer + 2, &vn, vnIndex++);
         else if (!strncmp("v",  lineBuffer, 1))  readV3(lineBuffer + 1, &v,  vIndex++);
-
-        /*
-        if (vIndex > vSize) {
-            fprintf(stderr, "objCreateMesh() Error: v components exceeded the expected size\n");
-            exit(1);
-        } else if (vtIndex > vtSize) {
-            fprintf(stderr, "objCreateMesh() Error: vt components exceeded the expected size\n");
-            exit(1);
-        } else if (vtIndex > vnSize) {
-            fprintf(stderr, "objCreateMesh() Error: vn components exceeded the expected size\n");
-            exit(1);
-        }
-        */
     }
 
     free(v);
@@ -106,23 +93,12 @@ objCreateMesh(const char *filename)
 }
 
 void
-vertexCount(FILE *fi, int *vSize, int *vtSize, int *vnSize)
-{
-    char line[OBJ_LINE_MAX_SIZE];
-    while (fgets(line, OBJ_LINE_MAX_SIZE, fi)) {
-        if      (!strncmp("vt", line, 2)) (*vtSize)++;
-        else if (!strncmp("vn", line, 2)) (*vnSize)++;
-        else if (!strncmp("v",  line, 1)) (*vSize)++;
-    }
-    fseek(fi, 0L, SEEK_SET);
-}
-
-void
 readF(char *line, Mesh *mesh, struct Setv3 *v, struct Setv2 *vt, struct Setv3 *vn)
 {
     Vertex vertexBuffer;
-    struct Seti f[6];
+    struct Seti *f;
     int i, nIndices, vi;
+    f = __callocIndices(line);
     nIndices = readIndices(line, f);
 
     for (i = 0; i < nIndices; i++) {
@@ -132,6 +108,7 @@ readF(char *line, Mesh *mesh, struct Setv3 *v, struct Setv2 *vt, struct Setv3 *v
         vi = vertexGetIndex(mesh->vertices, vertexBuffer, mesh->vertexSize);
         indexAdd(mesh, vi);
     }
+    free(f);
 }
 
 void
@@ -167,22 +144,24 @@ readV2(char *line, struct Setv2 **v, int vIndex)
 int
 readIndices(char *line, struct Seti *f)
 {
-    int i, n, fSize;
+    int i, j, n, fSize, maxVertices, triangleCount, vertexCount;
     char *ptr;
 
-    for (ptr = line, i = n = fSize = 0; *ptr != '\n'; fSize++, ptr += n, i++) {
-        f[i].v = f[i].vt = f[i].vn = -1;
-        if ((sscanf(ptr, " %d/%d/%d%n", &f[i].v, &f[i].vn, &f[i].vt, &n) >= 3)) continue;
+    vertexCount = 0;
+    triangleCount = 0;
+    for (ptr = line, n = fSize = 0; *ptr != '\n'; fSize++, ptr += n) {
+        if (!(triangleCount % 3) && triangleCount != 0) {
+            f[fSize] = f[fSize - 1];
+            n = 0;
+            triangleCount = 1;
+            continue;
+        } else {
+            n = __readIndices(ptr, &f[fSize]);
+            triangleCount++;
+            vertexCount++;
+        }
 
-        f[i].v = f[i].vt = f[i].vn = -1;
-        if ((sscanf(ptr, " %d//%d%n",   &f[i].v, &f[i].vn, &n)           >= 2)) continue;
-
-        f[i].v = f[i].vt = f[i].vn = -1;
-        if ((sscanf(ptr, " %d/%d%n",    &f[i].v, &f[i].vt, &n)           >= 2)) continue;
-
-        f[i].v = f[i].vt = f[i].vn = -1;
-        if ((sscanf(ptr, " %d%n",       &f[i].v, &n)                     >= 1)) continue;
-
+        if (n > 0) continue;
         fprintf(stderr, "readIndices() Error: bad format on line '%s'\n", line - 1);
         exit(1);
     }
@@ -193,17 +172,72 @@ readIndices(char *line, struct Seti *f)
         if (f[i].vt > 0 && i < 2) f[i].vt--;
     }
 
-    if (fSize == 4) {
-        f[4].v  = f[2].v;
-        f[4].vt = f[2].vt;
-        f[4].vn = f[2].vn;
-
-        f[5].v  = f[0].v;
-        f[5].vt = f[0].vt;
-        f[5].vn = f[0].vn;
-        fSize += 2;
+    if (fSize == 3) return fSize;
+    else if (fSize < 3) {
+        fprintf(stderr, "readIndices() Error: line '%s' must have at least 3 vertices not %d\n", line - 1, fSize);
+        exit(1);
     }
-    return fSize;
+
+    maxVertices = (vertexCount - 2) * 3;
+    f[fSize] = (!(fSize % 3)) ? f[fSize - 1] : f[0];
+    triangleCount += (fSize % 3) ? 1: 0;
+
+    int inc;
+    inc = 2;
+    for (j = i - fSize,  i = fSize + 1; i < maxVertices; i++, j+=inc) {
+        if (j >= vertexCount) {
+            j = 0;
+            inc *= 2;
+        }
+
+        if (!(triangleCount % 3) && triangleCount != 0) {
+            f[i] = f[i - 1];
+            triangleCount = 1;
+        } else {
+            f[i] = f[j];
+            triangleCount++;
+        }
+    }
+    return maxVertices;
+}
+
+struct Seti *
+__callocIndices(char *line)
+{
+    struct Seti *f;
+    char *ptr;
+    int n, fSize, i, j, k;
+    for (ptr = line, n = fSize = 0; *ptr != '\n'; ptr += n) {
+        if      ((sscanf(ptr, " %d/%d/%d%n", &i, &j, &k, &n) >= 3)) fSize++;
+        else if ((sscanf(ptr, " %d//%d%n",   &i, &j,     &n) >= 2)) fSize++;
+        else if ((sscanf(ptr, " %d/%d%n",    &i, &j,     &n) >= 2)) fSize++;
+        else if ((sscanf(ptr, " %d%n",       &i,         &n) >= 1)) fSize++;
+        else {
+            fprintf(stderr, "__callocIndices() Error: the line '%s' format is wrong\n", line - 1);
+            exit(1);
+        }
+    }
+    f = (struct Seti *)calloc(3 * (fSize - 2), sizeof(struct Seti));
+    return f;
+}
+
+int
+__readIndices(char *line, struct Seti *f)
+{
+    int n;
+    f->v = f->vt = f->vn = -1;
+    if ((sscanf(line, " %d/%d/%d%n", &f->v, &f->vn, &f->vt, &n) >= 3)) return n;
+
+    f->v = f->vt = f->vn = -1;
+    if ((sscanf(line, " %d//%d%n",   &f->v, &f->vn, &n)         >= 2)) return n;
+
+    f->v = f->vt = f->vn = -1;
+    if ((sscanf(line, " %d/%d%n",    &f->v, &f->vt, &n)         >= 2)) return n;
+
+    f->v = f->vt = f->vn = -1;
+    if ((sscanf(line, " %d%n",       &f->v, &n)                 >= 1)) return n;
+
+    return 0;
 }
 
 Vertex
