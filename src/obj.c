@@ -30,9 +30,8 @@ static void readV2(char *line, struct Setv2 **vn, int vtIndex);
 static void readF(char *line, Mesh *mesh, struct Setv3 *v, struct Setv2 *vt, struct Setv3 *vn);
 
 // ----------------------------------------------------------------------------
-static int readIndices(char *line, struct Seti *f);
-static int __readIndices(char *line, struct Seti *f);
-static struct Seti * __callocIndices(char *line);
+struct Seti * readIndices(char *line, int *nIndices);
+static int readIndex(char *line, struct Seti *f);
 static Vertex createVertex(struct Seti f, struct Setv3 *v, struct Setv2 *vt, struct Setv3 *vn);
 static int vertexInVertices(Vertex vertex, Vertex *vertices, int nVertices);
 static void vertexAdd(Mesh *mesh, Vertex vertex);
@@ -98,8 +97,7 @@ readF(char *line, Mesh *mesh, struct Setv3 *v, struct Setv2 *vt, struct Setv3 *v
     Vertex vertexBuffer;
     struct Seti *f;
     int i, nIndices, vi;
-    f = __callocIndices(line);
-    nIndices = readIndices(line, f);
+    f = readIndices(line, &nIndices);
 
     for (i = 0; i < nIndices; i++) {
         vertexBuffer = createVertex(f[i], v, vt, vn);
@@ -141,88 +139,70 @@ readV2(char *line, struct Setv2 **v, int vIndex)
         sscanf(line, " %f%n", vptr[vIndex].data + i, &n);
 }
 
-int
-readIndices(char *line, struct Seti *f)
-{
-    int i, j, n, fSize, maxVertices, triangleCount, vertexCount;
-    char *ptr;
-
-    vertexCount = 0;
-    triangleCount = 0;
-    for (ptr = line, n = fSize = 0; *ptr != '\n'; fSize++, ptr += n) {
-        if (!(triangleCount % 3) && triangleCount != 0) {
-            f[fSize] = f[fSize - 1];
-            n = 0;
-            triangleCount = 1;
-            continue;
-        } else {
-            n = __readIndices(ptr, &f[fSize]);
-            triangleCount++;
-            vertexCount++;
-        }
-
-        if (n > 0) continue;
-        fprintf(stderr, "readIndices() Error: bad format on line '%s'\n", line - 1);
-        exit(1);
-    }
-
-    for (i = 0; i < fSize; i++) {
-        if (f[i].v > 0) f[i].v--;
-        if (f[i].vn > 0) f[i].vn--;
-        if (f[i].vt > 0 && i < 2) f[i].vt--;
-    }
-
-    if (fSize == 3) return fSize;
-    else if (fSize < 3) {
-        fprintf(stderr, "readIndices() Error: line '%s' must have at least 3 vertices not %d\n", line - 1, fSize);
-        exit(1);
-    }
-
-    maxVertices = (vertexCount - 2) * 3;
-    f[fSize] = (!(fSize % 3)) ? f[fSize - 1] : f[0];
-    triangleCount += (fSize % 3) ? 1: 0;
-
-    int inc;
-    inc = 2;
-    for (j = i - fSize,  i = fSize + 1; i < maxVertices; i++, j+=inc) {
-        if (j >= vertexCount) {
-            j = 0;
-            inc *= 2;
-        }
-
-        if (!(triangleCount % 3) && triangleCount != 0) {
-            f[i] = f[i - 1];
-            triangleCount = 1;
-        } else {
-            f[i] = f[j];
-            triangleCount++;
-        }
-    }
-    return maxVertices;
-}
-
 struct Seti *
-__callocIndices(char *line)
+readIndices(char *line, int *nIndices)
 {
     struct Seti *f;
+    struct Seti *buffer;
     char *ptr;
-    int n, fSize, i, j, k;
-    for (ptr = line, n = fSize = 0; *ptr != '\n'; ptr += n) {
-        if      ((sscanf(ptr, " %d/%d/%d%n", &i, &j, &k, &n) >= 3)) fSize++;
-        else if ((sscanf(ptr, " %d//%d%n",   &i, &j,     &n) >= 2)) fSize++;
-        else if ((sscanf(ptr, " %d/%d%n",    &i, &j,     &n) >= 2)) fSize++;
-        else if ((sscanf(ptr, " %d%n",       &i,         &n) >= 1)) fSize++;
-        else {
-            fprintf(stderr, "__callocIndices() Error: the line '%s' format is wrong\n", line - 1);
-            exit(1);
+    int bufferSize;
+    int n;
+
+    buffer = (struct Seti *)calloc(3, sizeof(struct Seti));
+    for (ptr = line, bufferSize = 0; *ptr != '\n'; ptr += n, bufferSize++) {
+        if (bufferSize + 1 > 3)
+            buffer = (struct Seti *)realloc(buffer, (bufferSize + 1) * sizeof(struct Seti));
+
+        n = readIndex(ptr, buffer + bufferSize);
+
+        if (buffer[bufferSize].v  != -1) buffer[bufferSize].v--;
+        if (buffer[bufferSize].vt != -1) buffer[bufferSize].vt--;
+        if (buffer[bufferSize].vn != -1) buffer[bufferSize].vn--;
+
+        if (n > 0) continue;
+
+        memset(buffer, 0, (bufferSize + 1) * sizeof(struct Seti));
+        free(buffer);
+        fprintf(stderr, "readIndices() Error: bad format in line '%s'", line);
+        exit(1);
+    }
+
+    *nIndices = (bufferSize - 2) * 3;
+    f = (struct Seti *)calloc(nIndices[0], sizeof(struct Seti));
+
+    int i, j, k;
+
+    for (i = j = 0, k = 1; i < bufferSize - 2; i++) {
+
+        f[3 * i] = (j == 0) ? buffer[0] : buffer[j];
+
+        if (j + k < bufferSize) {
+            f[3 * i + 1] = buffer[j + k];
+        } else {
+            f[3 * i + 1] = buffer[0];
+            j = 0;
+            k *= 2;
+            f[3 * i + 2] = buffer[j + k];
+            j += k;
+            continue;
+        }
+
+        f[3 * i + 2] = (j + 2 * k < bufferSize) ? buffer[j + 2 * k] : buffer[0];
+
+        if (j + 2 * k < bufferSize) {
+            j += 2 * k;
+        } else {
+            j = 0;
+            k *= 2; // 1 2 4
         }
     }
-    f = (struct Seti *)calloc(3 * (fSize - 2), sizeof(struct Seti));
+
+    free(buffer);
     return f;
 }
 
 int
-__readIndices(char *line, struct Seti *f)
+readIndex(char *line, struct Seti *f)
 {
     int n;
     f->v = f->vt = f->vn = -1;

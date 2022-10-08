@@ -282,7 +282,7 @@ int main(int argc, char *argv[])
         proj = linearPerspective(35, (float)width / height, 0.1, 100);
         T = linearTranslate(0.0, 0.0, 0.0);
         R = linearRotate(0, 1.0, 0.0, 0.0);
-        S = linearScale(0.6, 0.6, 0.6);
+        S = linearScale(1, 1, 1);
         model = linearMat4Muln(3, T, R, S);
 
         glUseProgram(shader);

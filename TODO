@@ -6,13 +6,16 @@ General
 Obj
 - Load obj files
     * Vertex coordinates, normals and textures
-    - read faces with more than 4 vertices
-- Render a set of vertices loaded from a file
-    - Add normal Support
+    * read faces with more than 4 vertices
+    - Read object materials
 
+- Render a set of vertices loaded from a file
+* Check 3D perspective transformation
+    * Render vertex coordinates
+    - Render Normal vectors
+    - Render vertex Textures
 
 Linear
 - Implement the Inverse function of mat4
 - Implement the determinant function of mat4
-* Check 3D perspective transformation
 - Implement Orhographic view transformation
