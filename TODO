@@ -1,16 +1,10 @@
-General
-- Add textures
-    ? Try to implement it without external libraries
-    - Make a PNG image reader
-
-Obj
+Graphics
 - Load obj files
     * Vertex coordinates, normals and textures
     * read faces with more than 4 vertices
     - Read object materials
 
 - Render a set of vertices loaded from a file
-* Check 3D perspective transformation
     * Render vertex coordinates
     - Render Normal vectors
     - Render vertex Textures
