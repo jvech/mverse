@@ -5,7 +5,7 @@ making a convincing world with mountains and lands, this will take a while 🥲.
 
 # Installation
 
-```shell
+```
 $ cd mverse
 $ make
 ```
