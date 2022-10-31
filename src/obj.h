@@ -2,6 +2,7 @@
 #define __OBJ__
 
 #define OBJ_LINE_MAX_SIZE 1024
+#define OBJ_MAX_NAME 512
 
 typedef struct {
     float position[3];
@@ -15,12 +16,24 @@ typedef struct {
 } Texture;
 
 typedef struct {
+    char name[OBJ_LINE_MAX_SIZE];
+    float ka[3], kd[3], ks[3];
+    unsigned int illum;
+    float ns;
+} Material;
+
+typedef struct {
     Vertex *vertices;
-    Texture *textures;
+    Material material;
     unsigned int *indices;
     unsigned int indexSize, vertexSize;
     unsigned int VAO, EBO, VBO;
 } Mesh;
 
-Mesh * objCreateMesh(const char *filename);
+typedef struct {
+    Mesh *mesh;
+    unsigned int size;
+} Obj;
+
+Obj objCreate(const char *filename);
 # endif

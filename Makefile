@@ -1,5 +1,5 @@
 CC 		:= cc
-CFLAGS 	:= -Wall -pedantic -pedantic-errors -std=c11
+CFLAGS 	:= -Wall -pedantic -pedantic-errors -std=c99
 DLIBS 	:= -lm $(shell pkg-config --libs glfw3 opengl glew)
 INCLUDE := $(addprefix -I,./include)
 OBJDIR 	= objs

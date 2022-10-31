@@ -30,6 +30,8 @@ static Mat4 processCameraInput(GLFWwindow *window, struct Camera *cameraObj, flo
 static unsigned int loadTexture(char const *path);
 static void meshSetUp(Mesh *mesh);
 static void meshDraw(unsigned int shader, Mesh mesh);
+static void objSetUp(Obj obj);
+static void objDraw(unsigned int shader, Obj obj);
 
 static float cameraSpeed = 2.0;
 
@@ -214,17 +216,38 @@ meshDraw(unsigned int shader, Mesh mesh)
     glBindVertexArray(0);
 }
 
+void
+objSetUp(Obj obj)
+{
+    int i;
+    for (i = 0;  i < obj.size; i++)
+        meshSetUp(obj.mesh + i);
+}
+
+void
+objDraw(unsigned int shader, Obj obj)
+{
+    int i;
+    for (i = 0; i < obj.size; i++) {
+        shaderSetfv(shader, "mtl.ambient",  obj.mesh[i].material.ka, glUniform3fv);
+        shaderSetfv(shader, "mtl.diffuse",  obj.mesh[i].material.kd, glUniform3fv);
+        shaderSetfv(shader, "mtl.specular", obj.mesh[i].material.ks, glUniform3fv);
+        meshDraw(shader, obj.mesh[i]);
+    }
+}
+
+
 int main(int argc, char *argv[])
 {
-    Mesh *mesh;
+    Obj obj;
     GLFWwindow *window;
     const char *glfwErrno;
 
-    if      (argc == 2) mesh = objCreateMesh(argv[1]);
-    else if (argc == 1) mesh = objCreateMesh("-");
+    if      (argc == 2) obj = objCreate(argv[1]);
+    else if (argc == 1) obj = objCreate("-");
     else                return 1;
 
-    if (mesh == NULL) {
+    if (obj.mesh == NULL) {
         glfwTerminate();
         userError("objCreateMesh Error", "NULL mesh returned");
     }
@@ -254,7 +277,7 @@ int main(int argc, char *argv[])
     unsigned int shader = shaderCreateProgram("shaders/dummy.vsh", "shaders/dummy.fsh");
 
 
-    meshSetUp(mesh);
+    objSetUp(obj);
 
     struct Camera mainCamera;
     mainCamera.position = linearVec3(0.0, 0.0, 10.0);
@@ -270,7 +293,7 @@ int main(int argc, char *argv[])
     glEnable(GL_DEPTH_TEST);
     while (!glfwWindowShouldClose(window)) {
         processInput(window);
-        glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+        glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glfwGetWindowSize(window, &width, &height);
 
@@ -292,15 +315,12 @@ int main(int argc, char *argv[])
         shaderSetMatrixfv(shader, "view", view.matrix[0], glUniformMatrix4fv);
         shaderSetMatrixfv(shader, "rotNormals", R.matrix[0], glUniformMatrix4fv);
 
-        meshDraw(shader, mesh[0]);
+        objDraw(shader, obj);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
     glfwTerminate();
 
-    free(mesh->vertices);
-    free(mesh->indices);
-    free(mesh);
     return 0;
 }

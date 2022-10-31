@@ -5,14 +5,6 @@
 
 #include "obj.h"
 
-enum ObjVertexType {
-    OBJ_V,
-    OBJ_VN,
-    OBJ_VT,
-    OBJ_F,
-    OBJ_OTHER
-};
-
 struct Setv3 {
     float data[3];
 };
@@ -27,9 +19,13 @@ struct Seti {
 
 static void readV3(char *line, struct Setv3 **v, int vIndex);
 static void readV2(char *line, struct Setv2 **vn, int vtIndex);
-static void readF(char *line, Mesh *mesh, struct Setv3 *v, struct Setv2 *vt, struct Setv3 *vn);
+static void readF(char *line, Mesh *mesh, int meshIndex, struct Setv3 *v, struct Setv2 *vt, struct Setv3 *vn);
 
-// ----------------------------------------------------------------------------
+static Material * readMtl(char *line, const char *path, int *size);
+static unsigned int useMtl(char *line, Material *mtl, unsigned int size);
+
+/* -------------------------------------------------------------------------- */
+
 struct Seti * readIndices(char *line, int *nIndices);
 static int readIndex(char *line, struct Seti *f);
 static Vertex createVertex(struct Seti f, struct Setv3 *v, struct Setv2 *vt, struct Setv3 *vn);
@@ -38,10 +34,18 @@ static void vertexAdd(Mesh *mesh, Vertex vertex);
 static int vertexGetIndex(Vertex *vertices,  Vertex vertex, int nVertices);
 static void indexAdd(Mesh *mesh, int index);
 
-Mesh *
-objCreateMesh(const char *filename)
+/* -------------------------------------------------------------------------- */
+static void getDir(char *filepath);
+static void appendMtl(char *line, Material **mtl, int index);
+static void readColor(char *line, float *k);
+
+
+Obj
+objCreate(const char *filename)
 {
+    Obj o;
     Mesh *mesh;
+    Material *mtl;
     char lineBuffer[OBJ_LINE_MAX_SIZE]; 
     FILE *fi;
 
@@ -57,30 +61,48 @@ objCreateMesh(const char *filename)
     if (fi == NULL || mesh == NULL) {
         fprintf(stderr, "objCreateMesh() Error: %s\n", strerror(errno));
         fclose(fi);
-        return NULL;
+        exit(1);
     }
 
     v   = (struct Setv3 *)calloc(1, vSize  * sizeof(struct Setv3));
     vt  = (struct Setv2 *)calloc(1, vtSize * sizeof(struct Setv2));
     vn  = (struct Setv3 *)calloc(1, vnSize * sizeof(struct Setv3));
 
-    /*
-    if (vSize == 0) {
-        fprintf(stderr, "objCreateMesh() Error: v components not found\n");
-        exit(1);
-    } else if (v == NULL) {
+    if (v == NULL) {
         fprintf(stderr, "objCreateMesh() Error: %s\n", strerror(errno));
         exit(1);
     }
-    */
 
+    int n;
+    char key[500];
     int vIndex, vtIndex, vnIndex;
-    vIndex = vtIndex = vnIndex = 0;
+    int mtlSize, mtlIndex, meshIndex;
+    vIndex = vtIndex = vnIndex = meshIndex = 0;
+
     while (fgets(lineBuffer, OBJ_LINE_MAX_SIZE, fi)) {
-        if      (!strncmp("f",  lineBuffer, 1))  readF (lineBuffer + 1, mesh, v, vt, vn);
-        else if (!strncmp("vt", lineBuffer, 2))  readV2(lineBuffer + 2, &vt, vtIndex++);
-        else if (!strncmp("vn", lineBuffer, 2))  readV3(lineBuffer + 2, &vn, vnIndex++);
-        else if (!strncmp("v",  lineBuffer, 1))  readV3(lineBuffer + 1, &v,  vIndex++);
+
+        sscanf(lineBuffer, "%s%n", key, &n);
+
+        if      (!strcmp("f" , key))  readF (lineBuffer + n, mesh, meshIndex, v, vt, vn);
+        else if (!strcmp("vt", key))  readV2(lineBuffer + n, &vt, vtIndex++);
+        else if (!strcmp("vn", key))  readV3(lineBuffer + n, &vn, vnIndex++);
+        else if (!strcmp("v" , key))  readV3(lineBuffer + n, &v,  vIndex++);
+
+        else if (!strcmp("mtllib", key)) mtl = readMtl(lineBuffer + n, filename, &mtlSize);
+        else if (!strcmp("usemtl", key)) {
+            mtlIndex = useMtl (lineBuffer + n, mtl, mtlSize);
+            mesh = (Mesh *)realloc(mesh, (++meshIndex + 1) * sizeof(Mesh));
+            memset(mesh + meshIndex, 0, sizeof(Mesh));
+            mesh[meshIndex].material = mtl[mtlIndex];
+            mesh[meshIndex].indexSize = 0;
+        }
+    }
+
+    o.mesh = mesh;
+    o.size = meshIndex + 1;
+    for (int i = 1; i < o.size; i++) {
+        o.mesh[i].vertices = o.mesh[0].vertices;
+        o.mesh[i].vertexSize = o.mesh[0].vertexSize;
     }
 
     free(v);
@@ -88,11 +110,11 @@ objCreateMesh(const char *filename)
     free(vn);
     fclose(fi);
 
-    return mesh;
+    return o;
 }
 
 void
-readF(char *line, Mesh *mesh, struct Setv3 *v, struct Setv2 *vt, struct Setv3 *vn)
+readF(char *line, Mesh *mesh, int meshIndex, struct Setv3 *v, struct Setv2 *vt, struct Setv3 *vn)
 {
     Vertex vertexBuffer;
     struct Seti *f;
@@ -104,7 +126,7 @@ readF(char *line, Mesh *mesh, struct Setv3 *v, struct Setv2 *vt, struct Setv3 *v
         if (!vertexInVertices(vertexBuffer, mesh->vertices, mesh->vertexSize))
             vertexAdd(mesh, vertexBuffer); 
         vi = vertexGetIndex(mesh->vertices, vertexBuffer, mesh->vertexSize);
-        indexAdd(mesh, vi);
+        indexAdd(mesh + meshIndex, vi);
     }
     free(f);
 }
@@ -304,4 +326,104 @@ indexAdd(Mesh *mesh, int index)
     iv[iSize] = index;
     mesh->indices = iv;
     mesh->indexSize++;
+}
+
+Material *
+readMtl(char *line, const char *objFile, int *size)
+{
+    Material *out;
+    char buffer[OBJ_LINE_MAX_SIZE], mtlFilename[OBJ_LINE_MAX_SIZE], key[500];
+    char path[512], fileName[512];
+    FILE *fin;
+    int i, n;
+
+    strncpy(path, objFile, 512);
+    getDir(path);
+    sscanf(line, " ./%s", fileName);
+    sprintf(mtlFilename, "%s/%s", path, fileName);
+
+    fin = fopen(mtlFilename, "r");
+    i = 0;
+    while(fgets(buffer, OBJ_LINE_MAX_SIZE, fin)) {
+        sscanf(buffer, "%s%n", key, &n);
+        if  (!strcmp(key, "newmtl")) appendMtl(buffer + n, &out, i++);
+        if (i > 0) {
+            if      (!strcmp(key, "Ka"))     readColor(buffer + n, out[i - 1].ka);
+            else if (!strcmp(key, "Kd"))     readColor(buffer + n, out[i - 1].kd);
+            else if (!strcmp(key, "Ks"))     readColor(buffer + n, out[i - 1].ks);
+            else if (!strcmp(key, "illum"))  sscanf(buffer + n, "%u", &out[i - 1].illum);
+            else if (!strcmp(key, "Ns"))     sscanf(buffer + n, "%f", &out[i - 1].ns);
+        }
+    }
+
+    if (size) *size = i;
+    fclose(fin);
+    return out;
+}
+
+void
+appendMtl(char *line, Material **mtl, int index)
+{
+    char name[OBJ_LINE_MAX_SIZE];
+
+    if (index == 0)
+        *mtl = (Material *)calloc(1, sizeof(Material));
+    else
+        *mtl = (Material *)realloc(*mtl, (index + 1) * sizeof(Material));
+
+    sscanf(line, "%s", name);
+    strncpy((*mtl + index)->name, name, OBJ_LINE_MAX_SIZE);
+
+    if (mtl == NULL) {
+        fprintf(stderr, "appendMtl() Error: %s\n", strerror(errno));
+        exit(1);
+    }
+}
+
+void
+readColor(char *line, float *k)
+{
+    int ret;
+    ret = sscanf(line, "%f %f %f", k, k + 1, k + 2);
+    switch (ret) {
+        case 1:
+            k[1] = k[2] = k[0];
+            break;
+        case 3:
+            break;
+        default:
+            fprintf(stderr, "readColor() Error: line '%s' invalid format", line - 2);
+            exit(1);
+            break;
+    }
+}
+
+unsigned int
+useMtl(char *line, Material *mtl, unsigned int size)
+{
+    int i;
+    char name[OBJ_LINE_MAX_SIZE];
+    for (i = 0; i < size; i++) {
+        sscanf(line, "%s", name);
+        if (!strcmp(name, mtl[i].name))
+            return i;
+    }
+    return 0;
+}
+
+void
+getDir(char *filepath)
+{
+    int i;
+    for (i = strlen(filepath) - 1; i >= 0; i--) {
+        switch (filepath[i]) {
+            case '/':
+            case '\\':
+                filepath[i] = '\0';
+                return;
+            default:
+                break;
+        }
+    }
+    strcpy(filepath, ".");
 }

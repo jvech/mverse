@@ -2,3 +2,17 @@
 
 The goal of this project is learning Opengl through a project, which consists in
 making a convincing world with mountains and lands, this will take a while 🥲.
+
+# Installation
+
+```shell
+$ cd mverse
+$ make
+```
+
+# Usage
+
+```
+$ ./mverse <FILE>
+```
+
