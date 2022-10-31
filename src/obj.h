@@ -20,7 +20,7 @@
 #define __OBJ__
 
 #define OBJ_LINE_MAX_SIZE 1024
-#define OBJ_MAX_NAME 512
+#define OBJ_MAX_WORD 512
 
 typedef struct {
     float position[3];

@@ -306,14 +306,22 @@ int main(int argc, char *argv[])
     Mat4 T, S, R;
     float t, t0, dt;
     int width, height;
+    char title[1024];
     t0 = 0;
 
     glEnable(GL_DEPTH_TEST);
     while (!glfwWindowShouldClose(window)) {
         processInput(window);
-        glClearColor(0.5f, 0.5f, 0.5f, 1.0f);
+        glClearColor(0.7f, 0.7f, 0.7f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glfwGetWindowSize(window, &width, &height);
+        sprintf(title, "mverse: x: %f y: %f z: %f",
+                mainCamera.front.vector[0] + mainCamera.position.vector[0],
+                mainCamera.front.vector[1] + mainCamera.position.vector[1],
+                mainCamera.front.vector[2] + mainCamera.position.vector[2]);
+        glfwSetWindowTitle(window, title);
+
+
 
         t = (float)glfwGetTime();
         dt = t - t0;

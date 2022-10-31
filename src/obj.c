@@ -95,7 +95,7 @@ objCreate(const char *filename)
     char key[500];
     int vIndex, vtIndex, vnIndex;
     int mtlSize, mtlIndex, meshIndex;
-    vIndex = vtIndex = vnIndex = meshIndex = 0;
+    vIndex = vtIndex = vnIndex = meshIndex = mtlSize = 0;
 
     while (fgets(lineBuffer, OBJ_LINE_MAX_SIZE, fi)) {
 
@@ -107,13 +107,14 @@ objCreate(const char *filename)
         else if (!strcmp("v" , key))  readV3(lineBuffer + n, &v,  vIndex++);
 
         else if (!strcmp("mtllib", key)) mtl = readMtl(lineBuffer + n, filename, &mtlSize);
-        else if (!strcmp("usemtl", key)) {
+        else if (!strcmp("usemtl", key) && mtlSize > 0) {
             mtlIndex = useMtl (lineBuffer + n, mtl, mtlSize);
             mesh = (Mesh *)realloc(mesh, (++meshIndex + 1) * sizeof(Mesh));
             memset(mesh + meshIndex, 0, sizeof(Mesh));
             mesh[meshIndex].material = mtl[mtlIndex];
             mesh[meshIndex].indexSize = 0;
         }
+        key[0] = '\0';
     }
 
     o.mesh = mesh;
@@ -350,8 +351,8 @@ Material *
 readMtl(char *line, const char *objFile, int *size)
 {
     Material *out;
-    char buffer[OBJ_LINE_MAX_SIZE], mtlFilename[OBJ_LINE_MAX_SIZE], key[500];
-    char path[512], fileName[512];
+    char buffer[OBJ_LINE_MAX_SIZE], mtlFilename[OBJ_LINE_MAX_SIZE], key[OBJ_MAX_WORD];
+    char path[OBJ_MAX_WORD], fileName[OBJ_MAX_WORD];
     FILE *fin;
     int i, n;
 
@@ -372,6 +373,7 @@ readMtl(char *line, const char *objFile, int *size)
             else if (!strcmp(key, "illum"))  sscanf(buffer + n, "%u", &out[i - 1].illum);
             else if (!strcmp(key, "Ns"))     sscanf(buffer + n, "%f", &out[i - 1].ns);
         }
+        key[0] = '\0';
     }
 
     if (size) *size = i;
