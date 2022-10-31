@@ -19,7 +19,7 @@
 # ifndef __OBJ__
 #define __OBJ__
 
-#define OBJ_LINE_MAX_SIZE 1024
+#define OBJ_LINE_MAX 1024
 #define OBJ_MAX_WORD 512
 
 typedef struct {
@@ -34,7 +34,7 @@ typedef struct {
 } Texture;
 
 typedef struct {
-    char name[OBJ_LINE_MAX_SIZE];
+    char name[OBJ_LINE_MAX];
     float ka[3], kd[3], ks[3];
     unsigned int illum;
     float ns;

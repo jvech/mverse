@@ -64,7 +64,7 @@ objCreate(const char *filename)
     Obj o;
     Mesh *mesh;
     Material *mtl;
-    char lineBuffer[OBJ_LINE_MAX_SIZE]; 
+    char lineBuffer[OBJ_LINE_MAX];
     FILE *fi;
 
     struct Setv3 *v, *vn;
@@ -97,7 +97,7 @@ objCreate(const char *filename)
     int mtlSize, mtlIndex, meshIndex;
     vIndex = vtIndex = vnIndex = meshIndex = mtlSize = 0;
 
-    while (fgets(lineBuffer, OBJ_LINE_MAX_SIZE, fi)) {
+    while (fgets(lineBuffer, OBJ_LINE_MAX, fi)) {
 
         sscanf(lineBuffer, "%s%n", key, &n);
 
@@ -351,7 +351,7 @@ Material *
 readMtl(char *line, const char *objFile, int *size)
 {
     Material *out;
-    char buffer[OBJ_LINE_MAX_SIZE], mtlFilename[OBJ_LINE_MAX_SIZE], key[OBJ_MAX_WORD];
+    char buffer[OBJ_LINE_MAX], mtlFilename[OBJ_LINE_MAX], key[OBJ_MAX_WORD];
     char path[OBJ_MAX_WORD], fileName[OBJ_MAX_WORD];
     FILE *fin;
     int i, n;
@@ -362,8 +362,18 @@ readMtl(char *line, const char *objFile, int *size)
     sprintf(mtlFilename, "%s/%s", path, fileName);
 
     fin = fopen(mtlFilename, "r");
+
+    if (fin == NULL && errno == ENOENT) {
+        perror("readMtl() Warning");
+        if (size) *size = 0;
+        return NULL;
+    } else if (fin == NULL) {
+        perror("readMtl() Error");
+        exit(1);
+    }
+
     i = 0;
-    while(fgets(buffer, OBJ_LINE_MAX_SIZE, fin)) {
+    while(fgets(buffer, OBJ_LINE_MAX, fin)) {
         sscanf(buffer, "%s%n", key, &n);
         if  (!strcmp(key, "newmtl")) appendMtl(buffer + n, &out, i++);
         if (i > 0) {
@@ -384,7 +394,7 @@ readMtl(char *line, const char *objFile, int *size)
 void
 appendMtl(char *line, Material **mtl, int index)
 {
-    char name[OBJ_LINE_MAX_SIZE];
+    char name[OBJ_LINE_MAX];
 
     if (index == 0)
         *mtl = (Material *)calloc(1, sizeof(Material));
@@ -392,10 +402,10 @@ appendMtl(char *line, Material **mtl, int index)
         *mtl = (Material *)realloc(*mtl, (index + 1) * sizeof(Material));
 
     sscanf(line, "%s", name);
-    strncpy((*mtl + index)->name, name, OBJ_LINE_MAX_SIZE);
+    strncpy((*mtl + index)->name, name, OBJ_LINE_MAX);
 
     if (mtl == NULL) {
-        fprintf(stderr, "appendMtl() Error: %s\n", strerror(errno));
+        perror("appendMtl() Error");
         exit(1);
     }
 }
@@ -422,7 +432,7 @@ unsigned int
 useMtl(char *line, Material *mtl, unsigned int size)
 {
     int i;
-    char name[OBJ_LINE_MAX_SIZE];
+    char name[OBJ_LINE_MAX];
     for (i = 0; i < size; i++) {
         sscanf(line, "%s", name);
         if (!strcmp(name, mtl[i].name))
