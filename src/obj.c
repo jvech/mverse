@@ -398,8 +398,10 @@ appendMtl(char *line, Material **mtl, int index)
 
     if (index == 0)
         *mtl = (Material *)calloc(1, sizeof(Material));
-    else
+    else {
         *mtl = (Material *)realloc(*mtl, (index + 1) * sizeof(Material));
+        memset(*mtl + index, 0, sizeof(Material));
+    }
 
     sscanf(line, "%s", name);
     strncpy((*mtl + index)->name, name, OBJ_LINE_MAX);

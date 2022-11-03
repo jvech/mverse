@@ -15,6 +15,6 @@ void main()
 {
     gl_Position = proj * view * model * vec4(aPos, 1.0f);
     FragPos = vec3(model * vec4(aPos, 1.0));
-    //Normal = vec3(rotNormals * vec4(aNormal, 1.0));
-    //TexCoords = aTexCoords;
+    Normal = vec3(rotNormals * vec4(aNormal, 1.0));
+    TexCoords = aTexCoords;
 }

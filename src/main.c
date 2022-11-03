@@ -299,7 +299,7 @@ int main(int argc, char *argv[])
 
     struct Camera mainCamera;
     mainCamera.position = linearVec3(0.0, 0.0, 10.0);
-    mainCamera.front = linearVec3(0.0, 0.0, -1.0);
+    mainCamera.front = linearVec3(0.0, 0.0, 1.0);
     mainCamera.up = linearVec3(0.0, 1.0, 0.0);
 
     Mat4 model, view, proj;
@@ -312,7 +312,7 @@ int main(int argc, char *argv[])
     glEnable(GL_DEPTH_TEST);
     while (!glfwWindowShouldClose(window)) {
         processInput(window);
-        glClearColor(0.7f, 0.7f, 0.7f, 1.0f);
+        glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glfwGetWindowSize(window, &width, &height);
         sprintf(title, "mverse: x: %f y: %f z: %f",
@@ -340,6 +340,12 @@ int main(int argc, char *argv[])
         shaderSetMatrixfv(shader, "proj", proj.matrix[0], glUniformMatrix4fv);
         shaderSetMatrixfv(shader, "view", view.matrix[0], glUniformMatrix4fv);
         shaderSetMatrixfv(shader, "rotNormals", R.matrix[0], glUniformMatrix4fv);
+        shaderSetfv(shader, "viewPos", mainCamera.position.vector, glUniform3fv);
+
+        shaderSetfv(shader, "dirLight.direction", vec3(-0.2, -1.0, 0.3), glUniform3fv);
+        shaderSetfv(shader, "dirLight.ambient",   vec3(0.1, 0.1, 0.1), glUniform3fv);
+        shaderSetfv(shader, "dirLight.diffuse",   vec3(0.8, 0.8, 0.8), glUniform3fv);
+        shaderSetfv(shader, "dirLight.specular",  vec3(1.0, 1.0, 1.0), glUniform3fv);
 
         objDraw(shader, obj);
 
