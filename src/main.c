@@ -118,6 +118,10 @@ processCameraInput(GLFWwindow *window, struct Camera *camObj, float deltaTime)
         camObj->position = linearVec3Add(camObj->position, tmp);
     }
 
+    if (glfwGetKey(window, GLFW_KEY_DOWN))  scale -=  0.1 * speed;
+    if (glfwGetKey(window, GLFW_KEY_UP))    scale +=  0.1 * speed;
+    if (glfwGetKey(window, GLFW_KEY_ENTER)) scale = 1;
+
     /*
      * Mouse Input
      */
@@ -331,7 +335,7 @@ int main(int argc, char *argv[])
         proj = linearPerspective(35, (float)width / height, 0.1, 100);
         T = linearTranslate(0.0, 0.0, 0.0);
         R = linearRotate(0, 1.0, 0.0, 0.0);
-        S = linearScale(1, 1, 1);
+        S = linearScale(scale, scale, scale);
         model = linearMat4Muln(3, T, R, S);
 
         glUseProgram(shader);

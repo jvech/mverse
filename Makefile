@@ -15,7 +15,7 @@ $(OBJDIR):
 	mkdir ${OBJDIR}
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.c
-	${CC} -g -c $< -o $@ ${CFLAGS} ${INCLUDE}
+	${CC} -c $< -o $@ ${CFLAGS} ${INCLUDE}
 
 build: $(OBJS)
 	${CC} $^ -o ${BIN} ${DLIBS}
