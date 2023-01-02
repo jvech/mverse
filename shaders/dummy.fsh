@@ -43,5 +43,5 @@ void main()
     vec3 diffuse = diff * dirLight.diffuse * mtl.diffuse;
     vec3 specular = spec * dirLight.specular * mtl.specular;
 
-    FragColor = vec4(ambient + diffuse + specular, 1.0);
+    FragColor = vec4(mtl.diffuse, 1.0);
 }

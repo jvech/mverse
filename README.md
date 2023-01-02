@@ -1,18 +1,28 @@
-# My 3D Dimensional World
+# Mverse
 
-The goal of this project is learning Opengl through a project, which consists in
-making a convincing world with mountains and lands, this will take a while 🥲.
+A minimalist feature less object file visualizer that uses opengl
 
-# Installation
+## Dependencies
+
+* glfw
+* opengl >= 3.3
+* stb\_image
+
+## Installation
 
 ```
 $ cd mverse
-$ make
+$ sudo make install
 ```
 
-# Usage
-
+Before running Mverse set the following environment variables (on your
+`.bashrc`):
 ```
-$ ./mverse <FILE>
+export MVERSE_VERTEX=/usr/share/mverse/dummy.vsh
+export MVERSE_FRAGMENT=/usr/share/mverse/dummy.fsh
 ```
 
+## Usage
+```
+$ mverse [-v vertexshader] [-f fragmentshader] objfile
+```

@@ -23,6 +23,7 @@
 #include <signal.h>
 #include <stdarg.h>
 
+#include <getopt.h>
 #include <math.h>
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -50,6 +51,7 @@ static void meshSetUp(Mesh *mesh);
 static void meshDraw(unsigned int shader, Mesh mesh);
 static void objSetUp(Obj obj);
 static void objDraw(unsigned int shader, Obj obj);
+static void usage(int status);
 
 static float cameraSpeed = 2.0;
 
@@ -258,6 +260,12 @@ objDraw(unsigned int shader, Obj obj)
     }
 }
 
+void
+usage(int exitStatus)
+{
+    fprintf(stderr, "Usage: mverse [-h] [-v vertexshader] [-f fragmentshader] objfile\n");
+    exit(exitStatus);
+}
 
 int main(int argc, char *argv[])
 {
@@ -265,9 +273,35 @@ int main(int argc, char *argv[])
     GLFWwindow *window;
     const char *glfwErrno;
 
-    if      (argc == 2) obj = objCreate(argv[1]);
-    else if (argc == 1) obj = objCreate("-");
-    else                return 1;
+    int opt;
+    char *vertexFile, *fragmentFile; 
+    vertexFile = getenv("MVERSE_VERTEX");
+    fragmentFile = getenv("MVERSE_FRAGMENT");
+
+    while ((opt = getopt(argc, argv, "hv:f:")) != -1) {
+        switch (opt) {
+            case 'h':
+                usage(0);
+                break;
+            case 'v':
+                vertexFile = optarg;
+                break;
+            case 'f':
+                fragmentFile = optarg;
+                break;
+            default:
+                usage(2);
+        }
+    }
+
+    if (optind >= argc)     userError("cli Error", "expected argument after options\n");
+    else if (!vertexFile)   userError("environment Error", "MVERSE_VERTEX not defined");
+    else if (!fragmentFile) userError("environment Error", "MVERSE_FRAGMENT not defined");
+
+    argv += optind;
+    argc -= optind;
+
+    obj = objCreate(argv[0]);
 
     if (obj.mesh == NULL) {
         glfwTerminate();
@@ -296,15 +330,16 @@ int main(int argc, char *argv[])
         userError("glewInit Error", (const char *)glewGetErrorString(glewErrno));
     }
 
-    unsigned int shader = shaderCreateProgram("shaders/dummy.vsh", "shaders/dummy.fsh");
+    unsigned int shader = shaderCreateProgram(vertexFile, fragmentFile);
 
 
     objSetUp(obj);
 
-    struct Camera mainCamera;
-    mainCamera.position = linearVec3(0.0, 0.0, 10.0);
-    mainCamera.front = linearVec3(0.0, 0.0, 1.0);
-    mainCamera.up = linearVec3(0.0, 1.0, 0.0);
+    struct Camera mainCamera = {
+        .position = linearVec3(0.0, 0.0, 10.0),
+        .front = linearVec3(0.0, 0.0, 1.0),
+        .up = linearVec3(0.0, 1.0, 0.0),
+    };
 
     Mat4 model, view, proj;
     Mat4 T, S, R;
@@ -316,7 +351,7 @@ int main(int argc, char *argv[])
     glEnable(GL_DEPTH_TEST);
     while (!glfwWindowShouldClose(window)) {
         processInput(window);
-        glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+        glClearColor(0.2f, 0.2f, 0.2f, 0.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glfwGetWindowSize(window, &width, &height);
         sprintf(title, "mverse: x: %f y: %f z: %f",
@@ -324,8 +359,6 @@ int main(int argc, char *argv[])
                 mainCamera.front.vector[1] + mainCamera.position.vector[1],
                 mainCamera.front.vector[2] + mainCamera.position.vector[2]);
         glfwSetWindowTitle(window, title);
-
-
 
         t = (float)glfwGetTime();
         dt = t - t0;
