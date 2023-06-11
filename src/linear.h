@@ -47,7 +47,7 @@ Mat4 linearMat4Mul(Mat4 x1, Mat4 x2);
 Mat4 linearMat4Muln(int n, ...);
 Mat4 linearMat4Transpose(Mat4 x);
 Mat4 linearMat4Inv(Mat4 x); //TODO
-Mat4 linearMat4Add(Mat4 x1, Mat4 x2); //TODO
+Mat4 linearMat4Add(Mat4 x1, Mat4 x2);
 float linearMat4Det(Mat4 x); //TODO
 
 Vec3 linearVec3(float x, float y, float z);

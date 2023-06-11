@@ -1,4 +1,4 @@
-CC 		:= cc
+CC 		:= clang
 CFLAGS 	:= -Wall -pedantic -pedantic-errors -std=c99
 DLIBS 	:= -lm $(shell pkg-config --libs glfw3 opengl glew)
 INCLUDE := $(addprefix -I,./include)
@@ -25,7 +25,7 @@ build: $(OBJS)
 	${CC} $^ -o ${BIN} ${DLIBS}
 
 run:
-	./${BIN}
+	./${BIN} models/cessna.obj
 
 install: build
 	install -Dm 644 ${VERTEX} -t ${SHADERS_DIR}

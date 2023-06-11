@@ -1,15 +1,15 @@
 Graphics
-- Load obj files
+* Load obj files
     * Vertex coordinates, normals and textures
     * read faces with more than 4 vertices
-    - Read object materials
+    * Read object materials
 
 - Render a set of vertices loaded from a file
     * Render vertex coordinates
-    - Render Normal vectors
+    * Render Normal vectors
     - Render vertex Textures
 
 Linear
 - Implement the Inverse function of mat4
 - Implement the determinant function of mat4
-- Implement Orhographic view transformation
+* Implement Orhographic view transformation

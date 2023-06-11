@@ -77,7 +77,7 @@ objCreate(const char *filename)
 
     // On error return NULL
     if (fi == NULL || mesh == NULL) {
-        fprintf(stderr, "objCreateMesh() Error: %s\n", strerror(errno));
+        perror("objCreateMesh() Error");
         fclose(fi);
         exit(1);
     }
@@ -133,7 +133,13 @@ objCreate(const char *filename)
 }
 
 void
-readF(char *line, Mesh *mesh, int meshIndex, struct Setv3 *v, struct Setv2 *vt, struct Setv3 *vn)
+readF(char *line,
+      Mesh *mesh,
+	  int meshIndex,
+	  struct Setv3 *v,
+	  struct Setv2 *vt,
+	  struct Setv3 *vn
+      )
 {
     Vertex vertexBuffer;
     struct Seti *f;

@@ -42,6 +42,9 @@ struct Camera {
     Vec3 up;
 };
 
+static void loadCLI(int argc, char *argv[], char **vertexPath, char **fragmentPath);
+static void initOpengl(void);
+static void initGlfw(void);
 static void userError(const char *msg, const char *detail);
 static void glfw_size_callback(GLFWwindow *window, int width, int height);
 static void processInput(GLFWwindow *window);
@@ -54,6 +57,53 @@ static void objDraw(unsigned int shader, Obj obj);
 static void usage(int status);
 
 static float cameraSpeed = 2.0;
+
+void
+loadCLI(int argc, char *argv[], char **vertexPath, char **fragmentPath)
+{
+    int opt;
+    while ((opt = getopt(argc, argv, "hv:f:")) != -1) {
+        switch (opt) {
+            case 'h':
+                usage(0);
+                break;
+            case 'v':
+                *vertexPath = optarg;
+                break;
+            case 'f':
+                *fragmentPath = optarg;
+                break;
+            default:
+                usage(2);
+        }
+    }
+
+    if (optind >= argc)     userError("cli Error", "expected argument after options\n");
+    else if (!vertexPath)   userError("environment Error", "MVERSE_VERTEX not defined");
+    else if (!fragmentPath) userError("environment Error", "MVERSE_FRAGMENT not defined");
+
+}
+
+void
+initGlfw(void)
+{
+    const char *glfwErrno;
+    if (!glfwInit()) {
+        glfwGetError(&glfwErrno);
+        glfwTerminate();
+        userError("glfwInit() Error", glfwErrno);
+    }
+}
+
+void
+initOpengl(void)
+{
+    GLubyte glewErrno = glewInit();
+    if (glewErrno != GLEW_OK) {
+        glfwTerminate();
+        userError("initGlfw() Error", (const char *)glewGetErrorString(glewErrno));
+    }
+}
 
 void
 userError(const char *msg, const char *detail)
@@ -271,48 +321,20 @@ int main(int argc, char *argv[])
 {
     Obj obj;
     GLFWwindow *window;
-    const char *glfwErrno;
-
-    int opt;
     char *vertexFile, *fragmentFile; 
+    unsigned int shader;
+
     vertexFile = getenv("MVERSE_VERTEX");
     fragmentFile = getenv("MVERSE_FRAGMENT");
 
-    while ((opt = getopt(argc, argv, "hv:f:")) != -1) {
-        switch (opt) {
-            case 'h':
-                usage(0);
-                break;
-            case 'v':
-                vertexFile = optarg;
-                break;
-            case 'f':
-                fragmentFile = optarg;
-                break;
-            default:
-                usage(2);
-        }
-    }
-
-    if (optind >= argc)     userError("cli Error", "expected argument after options\n");
-    else if (!vertexFile)   userError("environment Error", "MVERSE_VERTEX not defined");
-    else if (!fragmentFile) userError("environment Error", "MVERSE_FRAGMENT not defined");
-
+    loadCLI(argc, argv, &vertexFile, &fragmentFile);
     argv += optind;
     argc -= optind;
 
     obj = objCreate(argv[0]);
 
-    if (obj.mesh == NULL) {
-        glfwTerminate();
-        userError("objCreateMesh Error", "NULL mesh returned");
-    }
-
-    if (!glfwInit()) {
-        glfwGetError(&glfwErrno);
-        glfwTerminate();
-        userError("glfwInit() Error", glfwErrno);
-    }
+    // glfw Init
+    initGlfw();
 
     window = glfwCreateWindow(640, 480, "Mverse", NULL, NULL);
     if (!window) {
@@ -320,18 +342,14 @@ int main(int argc, char *argv[])
         userError("glfwCreateWindow() Error", "Can't create window");
     }
 
+    // Window Setup
     glfwSetFramebufferSizeCallback(window, glfw_size_callback);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+
     glfwMakeContextCurrent(window);
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
-    GLubyte glewErrno = glewInit();
-    if (glewErrno != GLEW_OK) {
-        glfwTerminate();
-        userError("glewInit Error", (const char *)glewGetErrorString(glewErrno));
-    }
-
-    unsigned int shader = shaderCreateProgram(vertexFile, fragmentFile);
-
+    initOpengl();
+    shader = shaderCreateProgram(vertexFile, fragmentFile);
 
     objSetUp(obj);
 
